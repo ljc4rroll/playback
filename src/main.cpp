@@ -9,6 +9,7 @@ pros::adi::DigitalOut piston_A('A'); // Arm
 pros::Motor intake(-2);
 pros::Motor outtakeB(9); // Outtake bottom
 pros::Motor outtakeT(-19); // Outtake top
+pros::Imu inertial(11);
 
 void initialize() {
     pros::lcd::initialize();
@@ -22,13 +23,19 @@ void initialize() {
     left_mg.set_encoder_units(pros::E_MOTOR_ENCODER_DEGREES);
     right_mg.set_encoder_units(pros::E_MOTOR_ENCODER_DEGREES);
 
-    left_mg.set_brake_mode(pros::E_MOTOR_BRAKE_BRAKE);
-    right_mg.set_brake_mode(pros::E_MOTOR_BRAKE_BRAKE);
+    left_mg.set_brake_mode(pros::E_MOTOR_BRAKE_COAST);
+    right_mg.set_brake_mode(pros::E_MOTOR_BRAKE_COAST);
     intake.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
     outtakeB.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
 
     piston_D.set_value(0);
     piston_A.set_value(0);
+
+    inertial.reset();
+    while (inertial.is_calibrating())
+    {
+        pros::delay(10);
+    }
 }
 
 void disabled() {
@@ -50,13 +57,19 @@ void competition_initialize() {
     left_mg.set_encoder_units(pros::E_MOTOR_ENCODER_DEGREES);
     right_mg.set_encoder_units(pros::E_MOTOR_ENCODER_DEGREES);
 
-    left_mg.set_brake_mode(pros::E_MOTOR_BRAKE_BRAKE);
-    right_mg.set_brake_mode(pros::E_MOTOR_BRAKE_BRAKE);
+    left_mg.set_brake_mode(pros::E_MOTOR_BRAKE_COAST);
+    right_mg.set_brake_mode(pros::E_MOTOR_BRAKE_COAST);
     intake.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
     outtakeB.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
-
-    piston_A.set_value(0);
+    
     piston_D.set_value(0);
+    piston_A.set_value(0);
+
+    inertial.reset();
+    while (inertial.is_calibrating())
+    {
+        pros::delay(10);
+    }
 }
 
 void autonomous() {
@@ -66,23 +79,34 @@ void autonomous() {
         exit;
     }
 
-    double left_v, right_v;
+    double left_v_read, right_v_read;
     double intake_cmd, outtakeB_cmd;
     int piston_D_state;
     int piston_A_state;
     double target_rotation, current_rotation, rotation_difference;
-    double kP = 0.4;
     double rotation_difference_bounds = 10;
-    double motor_velocity_tolerance = .5;
 
     pros::lcd::set_text(0, "RECORDING ACTIVE");
     pros::delay(5);
 
 	while (pros::competition::is_autonomous() && !pros::competition::is_disabled() && !feof(file) && master.get_digital(DIGITAL_DOWN) == 0)
 	{
-		fscanf(file, "%lf %lf %lf %lf %d %d\n", &left_v, &right_v, &intake_cmd, &outtakeB_cmd, &piston_D_state, &piston_A_state); // Add variable retrieval for rotation
+		fscanf(file, "%lf %lf %lf %lf %d %d %lf", &left_v_read, &right_v_read, &intake_cmd, &outtakeB_cmd, &piston_D_state, &piston_A_state, &target_rotation); // Add variable retrieval for rotation
+        
+        current_rotation = inertial.get_rotation();
 
-        pros::delay(15);
+        pros::delay(7);
+
+        rotation_difference = target_rotation - current_rotation * 0.5;
+        if (std::isinf(rotation_difference) || std::isnan(rotation_difference)) rotation_difference = 0.0;
+        std::clamp(rotation_difference, -rotation_difference_bounds, rotation_difference_bounds);
+
+        double left_v = left_v_read - rotation_difference;
+        double right_v = right_v_read + rotation_difference;
+
+        printf("Rotation: %lf  Difference: %lf  LeftV: %lf  RightV: %lf\n", current_rotation, rotation_difference, left_v, right_v);
+
+        pros::delay(8);
 
         left_mg.move(left_v);
         right_mg.move(right_v);
@@ -136,7 +160,9 @@ void opcontrol() {
         int pneumatics_A_triggered = master.get_digital(DIGITAL_X);
         int speed_toggle = master.get_digital(DIGITAL_B);
 
-        pros::delay(7);
+        current_rotation = inertial.get_rotation();
+
+        pros::delay(5);
         
         // Pneumatics DEScore toggle
         if (pneumatics_D_triggered && !prev_pneumatic_D_toggle) {
@@ -167,7 +193,7 @@ void opcontrol() {
         if (outtakeB_up == 1 && outtakeB_down == 0) outtakeB_cmd = -127; else if (outtakeB_up == 0 && outtakeB_down == 1) outtakeB_cmd = 67;
         if (outtakeB_up == 1 || outtakeB_down == 1) outtakeT_cmd = 127; else outtakeT_cmd = 0;
 
-        pros::delay(8);
+        pros::delay(10);
 
         left_mg.move(left_voltage);
         right_mg.move(right_voltage);
@@ -175,7 +201,7 @@ void opcontrol() {
         outtakeB.move(outtakeB_cmd);
         outtakeT.move(outtakeT_cmd);
         
-        fprintf(file, "%lf %lf %lf %lf %d %d\n", left_voltage, right_voltage, intake_cmd, outtakeB_cmd, pneumatics_D_extended, pneumatics_A_extended);
+        fprintf(file, "%lf %lf %lf %lf %d %d %lf\n", left_voltage, right_voltage, intake_cmd, outtakeB_cmd, pneumatics_D_extended, pneumatics_A_extended, current_rotation);
 
         pros::delay(35);
     }
