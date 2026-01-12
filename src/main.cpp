@@ -9,7 +9,6 @@ pros::adi::DigitalOut piston_A('A'); // Arm
 pros::Motor intake(-2);
 pros::Motor outtakeB(9); // Outtake bottom
 pros::Motor outtakeT(-19); // Outtake top
-pros::Imu inertial(11);
 
 void initialize() {
     pros::lcd::initialize();
@@ -28,10 +27,6 @@ void initialize() {
     intake.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
     outtakeB.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
 
-    inertial.reset();
-    while (inertial.is_calibrating()) {
-        pros::delay(10);
-    }
     piston_D.set_value(0);
     piston_A.set_value(0);
 }
@@ -60,17 +55,12 @@ void competition_initialize() {
     intake.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
     outtakeB.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
 
-    inertial.reset();
-    while (inertial.is_calibrating()) {
-        pros::delay(10);
-    }
-
     piston_A.set_value(0);
     piston_D.set_value(0);
 }
 
 void autonomous() {
-    FILE* file = fopen("/usd/skills.txt", "r");
+    FILE* file = fopen("/usd/misc.txt", "r");
     if (!file) {
         pros::lcd::set_text(1, "SD Missing / No File");
         exit;
@@ -90,7 +80,7 @@ void autonomous() {
 
 	while (pros::competition::is_autonomous() && !pros::competition::is_disabled() && !feof(file) && master.get_digital(DIGITAL_DOWN) == 0)
 	{
-		fscanf(file, "%lf %lf %lf %lf %d %d %lf\n", &left_v, &right_v, &intake_cmd, &outtakeB_cmd, &piston_D_state, &piston_A_state, &target_rotation); // Add variable retrieval for rotation
+		fscanf(file, "%lf %lf %lf %lf %d %d\n", &left_v, &right_v, &intake_cmd, &outtakeB_cmd, &piston_D_state, &piston_A_state); // Add variable retrieval for rotation
 
         pros::delay(15);
 
@@ -117,7 +107,7 @@ void autonomous() {
 void opcontrol() {
     pros::lcd::set_text(0, "STARTING OPCONTROL");
 
-    FILE* file = fopen("/usd/skills.txt", "w");
+    FILE* file = fopen("/usd/misc.txt", "w");
 
     float base_speed = 0.4f;
     float fast_speed = 0.8f;
@@ -129,8 +119,6 @@ void opcontrol() {
     bool pneumatics_A_extended = false;
     double outtakeT_cmd = 0;
     double current_rotation = 0.0;
-
-    int deadzone = std::round(127.0 * 0.5);
 
     pros::lcd::set_text(0, "RECORDING ACTIVE");
     pros::delay(10);
@@ -147,8 +135,6 @@ void opcontrol() {
         int pneumatics_D_triggered = master.get_digital(DIGITAL_A);
         int pneumatics_A_triggered = master.get_digital(DIGITAL_X);
         int speed_toggle = master.get_digital(DIGITAL_B);
-
-        current_rotation = inertial.get_rotation();
 
         pros::delay(7);
         
@@ -189,7 +175,7 @@ void opcontrol() {
         outtakeB.move(outtakeB_cmd);
         outtakeT.move(outtakeT_cmd);
         
-        fprintf(file, "%lf %lf %lf %lf %d %d %lf\n", left_voltage, right_voltage, intake_cmd, outtakeB_cmd, pneumatics_D_extended, pneumatics_A_extended, current_rotation);
+        fprintf(file, "%lf %lf %lf %lf %d %d\n", left_voltage, right_voltage, intake_cmd, outtakeB_cmd, pneumatics_D_extended, pneumatics_A_extended);
 
         pros::delay(35);
     }
