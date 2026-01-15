@@ -12,7 +12,6 @@ pros::adi::DigitalOut pistonA('A'); // Arm
 pros::Motor intake(-2);
 pros::Motor outtakeB(9); // Outtake bottom
 pros::Motor outtakeT(-19); // Outtake top
-pros::Imu inertial(11);
 
 std::vector<std::string> indexFiles(const char* path = "/") {
     std::vector<std::string> files;
@@ -110,7 +109,36 @@ bool checkSave() {
     }
 }
 
+void reInitialize() {
+    if (pros::usd::is_installed() == 0) exit(2);
+    pros::delay(10);
+
+    master.clear();
+    pros::delay(50);
+    master.set_text(0, 0, "INITIALIZING");
+    pros::delay(50);
+
+    drivetrain.set_gearing(pros::E_MOTOR_GEAR_BLUE);
+    left_mg.set_gearing(pros::E_MOTOR_GEAR_BLUE);
+    right_mg.set_gearing(pros::E_MOTOR_GEAR_BLUE);
+
+    drivetrain.set_encoder_units(pros::E_MOTOR_ENCODER_DEGREES);
+    left_mg.set_encoder_units(pros::E_MOTOR_ENCODER_DEGREES);
+    right_mg.set_encoder_units(pros::E_MOTOR_ENCODER_DEGREES);
+
+    left_mg.set_brake_mode(pros::E_MOTOR_BRAKE_COAST);
+    right_mg.set_brake_mode(pros::E_MOTOR_BRAKE_COAST);
+    intake.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
+    outtakeB.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
+    
+    pistonA.set_value(0);
+    pistonD.set_value(0);
+    pros::delay(100);
+}
+
 void autonomous() {
+    reInitialize();
+
     // Check if file exists
     if (playbackInfo.selectedFile.empty()) {
         master.clear();
@@ -164,6 +192,8 @@ void autonomous() {
 }
 
 void overwrite() {    
+    reInitialize();
+
     // Check if file exists
     if (playbackInfo.selectedFile.empty()) {
         master.clear();
@@ -275,6 +305,8 @@ void overwrite() {
 }
 
 void extend() {
+    reInitialize();
+
     // Check if file exists
     if (playbackInfo.selectedFile.empty()) {
         master.clear();
@@ -416,7 +448,9 @@ void extend() {
 void playback() {
         master.clear();
         pros::delay(50);
-        master.set_text(0, 0, "(X)CHANGE FILE");
+        master.set_text(0, 0, "NO FILE SELECTED");
+        pros::delay(50);
+        master.set_text(1, 0, "(X)CHANGE FILE");
         pros::delay(50);
         master.set_text(2, 0, "(A)CONTINUE");
         pros::delay(50);
@@ -428,9 +462,9 @@ void playback() {
             fileSelection();
             master.clear();
             pros::delay(50);
-            master.set_text(0, 0, "(X)CHANGE FILE");
+            if (playbackInfo.selectedFile.empty()) master.set_text(0, 0, "NO FILE SELECTED"); else master.set_text(0, 0, (playbackInfo.selectedFile).c_str());
             pros::delay(50);
-            // master.set_text(1, 0, "(Y)CREATE/DELETE");
+            master.set_text(1, 0, "(X)CHANGE FILE");
             pros::delay(50);
             master.set_text(2, 0, "(A)CONTINUE");
             pros::delay(50);
@@ -502,7 +536,7 @@ void initialize() {
     
     pistonA.set_value(0);
     pistonD.set_value(0);
-    pros::delay(100);
+    pros::delay(20);
 
     while (pros::battery::get_capacity() > 10.0)
     {
@@ -548,7 +582,7 @@ void competition_initialize() {
     
     pistonA.set_value(0);
     pistonD.set_value(0);
-    pros::delay(100);
+    pros::delay(20);
 
     while (pros::battery::get_capacity() > 10.0)
     {
