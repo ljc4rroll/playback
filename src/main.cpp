@@ -36,11 +36,6 @@ std::vector<std::string> indexFiles(const char* path = "/") {
 // Used for GUI and playback selection
 struct {
     std::string selectedFile;
-    // 0 = Overwrite, 1 = Extend
-    int writeMethod;
-    // 0 = Autonomous, 1 = Driver (Overwrite), 2 = Driver (Extend)
-    int controlMethod;
-    bool passive = true;
 } playbackInfo;
 
 // Used for recording inputs. The buffer is stored in RAM to avoid timing inconsistencies during runtime.
