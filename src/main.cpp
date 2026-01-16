@@ -17,7 +17,10 @@ std::vector<std::string> indexFiles(const char* path = "/") {
     std::vector<std::string> files;
     static char buffer[1024];
 
-    int32_t result = pros::usd::list_files(path, buffer, sizeof(buffer));
+    int32_t result = pros::usd::list_files(path, buffer, sizeof(buffer)); // Puts the list of file names into buffer
+    if (result < 0) {
+        return files;
+    }
     char* token = std::strtok(buffer, "\n");
     pros::delay(20);
     while (token != nullptr) {
@@ -47,11 +50,34 @@ struct InputFrame {
     int16_t outtakeTCmd;
     uint8_t pistonD;
     uint8_t pistonA;
-    double_t rotation;
+    double rotation;
 };
+
+void displayHome() {
+    master.clear();
+    pros::delay(50);
+    if (playbackInfo.selectedFile.empty()) {
+        master.set_text(0, 0, "NO FILE SELECTED"); 
+    } else {
+        master.set_text(0, 0, (playbackInfo.selectedFile).c_str());
+    }
+    pros::delay(50);
+    master.set_text(1, 0, "(X)CHANGE FILE");
+    pros::delay(50);
+    master.set_text(2, 0, "(A)CONTINUE");
+    pros::delay(50);
+}
 
 void fileSelection() {
     std::vector<std::string> files = indexFiles();
+    if (files.empty()) {
+        master.clear();
+        pros::delay(50);
+        master.set_text(0, 0, "NO FILES FOUND");
+        pros::delay(3000);
+        return;
+    }
+
     int selectedIndex = 0;
     pros::delay(10);
 
@@ -59,24 +85,19 @@ void fileSelection() {
     pros::delay(50);
 
     while (true) {
-        bool aPressed = master.get_digital_new_press(DIGITAL_A);
-        bool bPressed = master.get_digital_new_press(DIGITAL_B);
-        bool upPressed = master.get_digital_new_press(DIGITAL_UP);
-        bool downPressed = master.get_digital_new_press(DIGITAL_DOWN);
-
-        if (aPressed) {
+        if (master.get_digital_new_press(DIGITAL_A)) {
             playbackInfo.selectedFile = files[selectedIndex]; 
             break;
         }
-        if (bPressed) return;
+        if (master.get_digital_new_press(DIGITAL_B)) return;
         pros::delay(10);
 
-        if (upPressed && selectedIndex > 0) {
+        if (master.get_digital_new_press(DIGITAL_UP) && selectedIndex > 0) {
             selectedIndex -= 1; 
             master.clear_line(1);
             pros::delay(50);
         }
-        else if (downPressed && selectedIndex < files.size() - 1) {
+        else if (master.get_digital_new_press(DIGITAL_DOWN) && selectedIndex < files.size() - 1) {
             selectedIndex += 1;
             master.clear_line(1);
             pros::delay(50);
@@ -133,6 +154,7 @@ void reInitialize() {
     rightMg.set_brake_mode(pros::E_MOTOR_BRAKE_COAST);
     intake.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
     outtakeB.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
+    outtakeT.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
     
     inertial.reset(true);
 
@@ -153,7 +175,13 @@ void autonomous() {
         return;
     }
     FILE* file = fopen(("/usd/" + playbackInfo.selectedFile).c_str(), "rb");
-    // if (!file) exit(3);
+    if (!file) {
+        master.clear();
+        pros::delay(50);
+        master.set_text(0, 0, "FILE ERROR");
+        pros::delay(3000);
+        return;
+    }
     
     // Find size of file
     fseek(file, 0, SEEK_END);
@@ -172,7 +200,7 @@ void autonomous() {
     pros::delay(50);
     master.set_text(0, 0, (playbackInfo.selectedFile).c_str());
     pros::delay(50);
-    master.set_text(0, 0, "PLAYBACK");
+    master.set_text(1, 0, "PLAYBACK");
     pros::delay(1000);
 
     // Check if still in autonomous mode, is not disabled, and the frames have not ended 
@@ -232,7 +260,7 @@ void overwrite() {
     pros::delay(50);
     master.set_text(0, 0, (playbackInfo.selectedFile).c_str());
     pros::delay(50);
-    master.set_text(0, 0, "OVERWRITE");
+    master.set_text(1, 0, "OVERWRITE");
     pros::delay(50);
     
     while (!master.get_digital_new_press(DIGITAL_DOWN)) {
@@ -302,6 +330,13 @@ void overwrite() {
     
     if (checkSave()) {
         FILE* file = fopen(("/usd/" + playbackInfo.selectedFile).c_str(), "wb");
+        if (!file) {
+            master.clear();
+            pros::delay(50);
+            master.set_text(0, 0, "FILE ERROR");
+            pros::delay(3000);
+            return;
+        }
         master.clear();
         pros::delay(50);
         master.set_text(0, 0, "WRITING");
@@ -329,19 +364,25 @@ void extend() {
         pros::delay(3000);
         return;
     }
-    FILE* fileR = fopen(("/usd/" + playbackInfo.selectedFile).c_str(), "rb");
-    if (!fileR) exit(3);
+    FILE* file = fopen(("/usd/" + playbackInfo.selectedFile).c_str(), "rb");
+    if (!file) {
+        master.clear();
+        pros::delay(50);
+        master.set_text(0, 0, "FILE ERROR");
+        pros::delay(3000);
+        return;
+    }
 
     // Find size of file
-    fseek(fileR, 0, SEEK_END);
-    size_t fileSize = ftell(fileR);
-    rewind(fileR);
+    fseek(file, 0, SEEK_END);
+    size_t fileSize = ftell(file);
+    rewind(file);
 
     size_t frameCount = fileSize / sizeof(InputFrame);
 
     // Create vector of inputFrames
     std::vector<InputFrame> frames(frameCount);
-    fread(frames.data(), sizeof(InputFrame), frameCount, fileR);
+    fread(frames.data(), sizeof(InputFrame), frameCount, file);
 
     // Sets the amount of input frames that can be recorded. 
     // Calculate by multiplying amount of seconds by the total delay of the driver control loop. 
@@ -458,40 +499,23 @@ void extend() {
         fclose(fileW);
         pros::delay(50);
     }
-    fclose(fileR);
+    fclose(file);
     pros::delay(10);
 
     master.clear();
     pros::delay(50);
 }
 
-void playback() {
-        master.clear();
-        pros::delay(50);
-        master.set_text(0, 0, "NO FILE SELECTED");
-        pros::delay(50);
-        master.set_text(1, 0, "(X)CHANGE FILE");
-        pros::delay(50);
-        master.set_text(2, 0, "(A)CONTINUE");
-        pros::delay(50);
+bool playback() {
+    displayHome();
     while (true) {
-        bool xPressed = master.get_digital_new_press(DIGITAL_X);
-        bool aPressed = master.get_digital_new_press(DIGITAL_A);
-        bool bPressed = master.get_digital_new_press(DIGITAL_B);
-        if (xPressed) {
+        if (master.get_digital_new_press(DIGITAL_X)) {
             fileSelection();
-            master.clear();
-            pros::delay(50);
-            if (playbackInfo.selectedFile.empty()) master.set_text(0, 0, "NO FILE SELECTED"); else master.set_text(0, 0, (playbackInfo.selectedFile).c_str());
-            pros::delay(50);
-            master.set_text(1, 0, "(X)CHANGE FILE");
-            pros::delay(50);
-            master.set_text(2, 0, "(A)CONTINUE");
-            pros::delay(50);
-        } else if (aPressed) {
+            displayHome();
+        } else if (master.get_digital_new_press(DIGITAL_A)) {
             break;
-        } else if (bPressed) {
-            exit(0);
+        } else if (master.get_digital_new_press(DIGITAL_B)) {
+            return true;
         }
         pros::delay(10);
     }
@@ -507,23 +531,15 @@ void playback() {
     pros::delay(50);
 
     while (true) {
-        bool xPressed = master.get_digital_new_press(DIGITAL_X);
-        bool yPressed = master.get_digital_new_press(DIGITAL_Y);
-        bool aPressed = master.get_digital_new_press(DIGITAL_A);
-        bool bPressed = master.get_digital_new_press(DIGITAL_B);
-
-        if (bPressed) {
+        if (master.get_digital_new_press(DIGITAL_B)) {
             break;
-        }
-        if (xPressed) {
+        } else if (master.get_digital_new_press(DIGITAL_X)) {
             autonomous();
             break;
-        }
-        if (yPressed) {
+        } else if (master.get_digital_new_press(DIGITAL_Y)) {
             overwrite();
             break;
-        }
-        if (aPressed) {
+        } else if (master.get_digital_new_press(DIGITAL_A)) {
             extend();
             break;
         }
@@ -555,6 +571,7 @@ void initialize() {
     rightMg.set_brake_mode(pros::E_MOTOR_BRAKE_COAST);
     intake.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
     outtakeB.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
+    outtakeT.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
     
     inertial.reset(true);
 
@@ -562,9 +579,11 @@ void initialize() {
     pistonD.set_value(0);
     pros::delay(20);
 
-    while (pros::battery::get_capacity() > 10.0)
+    bool exited = false;
+
+    while (pros::battery::get_capacity() > 10.0 || exited)
     {
-        playback();
+        exited = playback();
         disabled();
         pros::delay(10);
     }
@@ -605,6 +624,7 @@ void competition_initialize() {
     rightMg.set_brake_mode(pros::E_MOTOR_BRAKE_COAST);
     intake.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
     outtakeB.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
+    outtakeT.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
     
     inertial.reset(true);
 
@@ -612,9 +632,11 @@ void competition_initialize() {
     pistonD.set_value(0);
     pros::delay(20);
 
-    while (pros::battery::get_capacity() > 10.0)
+    bool exited = false;
+
+    while (pros::battery::get_capacity() > 10.0 || exited)
     {
-        playback();
+        exited = playback();
         disabled();
         pros::delay(10);
     }
