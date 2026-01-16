@@ -1,217 +1,622 @@
 #include "main.h"
+#include <vector>
+#include <cstring>
 
 pros::Controller master(pros::E_CONTROLLER_MASTER);
-pros::MotorGroup left_mg({-10, -7, -1});
-pros::MotorGroup right_mg({20, 5, 14});
+pros::MotorGroup leftMg({-10, -7, -1});
+pros::MotorGroup rightMg({20, 5, 14});
 pros::MotorGroup drivetrain({-10, 20, -7, 5, -1, 14});
-pros::adi::DigitalOut piston_D('B'); // Descore
-pros::adi::DigitalOut piston_A('A'); // Arm
+pros::adi::DigitalOut pistonD('B'); // Descore
+pros::adi::DigitalOut pistonA('A'); // Arm
 pros::Motor intake(-2);
 pros::Motor outtakeB(9); // Outtake bottom
 pros::Motor outtakeT(-19); // Outtake top
 pros::Imu inertial(11);
 
-void initialize() {
-    pros::lcd::initialize();
-    pros::lcd::set_text(0, "INITIALIZING");
+std::vector<std::string> indexFiles(const char* path = "/") {
+    std::vector<std::string> files;
+    static char buffer[1024];
 
-    drivetrain.set_gearing(pros::E_MOTOR_GEAR_BLUE);
-    left_mg.set_gearing(pros::E_MOTOR_GEAR_BLUE);
-    right_mg.set_gearing(pros::E_MOTOR_GEAR_BLUE);
+    int32_t result = pros::usd::list_files(path, buffer, sizeof(buffer));
+    char* token = std::strtok(buffer, "\n");
+    pros::delay(20);
+    while (token != nullptr) {
+        std::string filename(token);
+        size_t pos = filename.find(".txt");
+        filename = filename.substr(0, pos);
+        files.emplace_back(filename);
+        token = std::strtok(nullptr, "\n");
+    }
+    pros::delay(20);
 
-    drivetrain.set_encoder_units(pros::E_MOTOR_ENCODER_DEGREES);
-    left_mg.set_encoder_units(pros::E_MOTOR_ENCODER_DEGREES);
-    right_mg.set_encoder_units(pros::E_MOTOR_ENCODER_DEGREES);
+    return files;
+}
 
-    left_mg.set_brake_mode(pros::E_MOTOR_BRAKE_COAST);
-    right_mg.set_brake_mode(pros::E_MOTOR_BRAKE_COAST);
-    intake.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
-    outtakeB.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
+// Used for GUI and playback selection
+struct {
+    std::string selectedFile;
+} playbackInfo;
 
-    piston_D.set_value(0);
-    piston_A.set_value(0);
+// Used for recording inputs. The buffer is stored in RAM to avoid timing inconsistencies during runtime.
+struct InputFrame {
+    // Use 16-bit for smaller memory footprint
+    int16_t leftV;
+    int16_t rightV;
+    int16_t intakeCmd;
+    int16_t outtakeBCmd;
+    int16_t outtakeTCmd;
+    uint8_t pistonD;
+    uint8_t pistonA;
+    double_t rotation;
+};
 
-    inertial.reset();
-    while (inertial.is_calibrating())
-    {
+void fileSelection() {
+    std::vector<std::string> files = indexFiles();
+    int selectedIndex = 0;
+    pros::delay(10);
+
+    master.clear();
+    pros::delay(50);
+
+    while (true) {
+        bool aPressed = master.get_digital_new_press(DIGITAL_A);
+        bool bPressed = master.get_digital_new_press(DIGITAL_B);
+        bool upPressed = master.get_digital_new_press(DIGITAL_UP);
+        bool downPressed = master.get_digital_new_press(DIGITAL_DOWN);
+
+        if (aPressed) {
+            playbackInfo.selectedFile = files[selectedIndex]; 
+            break;
+        }
+        if (bPressed) return;
         pros::delay(10);
+
+        if (upPressed && selectedIndex > 0) {
+            selectedIndex -= 1; 
+            master.clear_line(1);
+            pros::delay(50);
+        }
+        else if (downPressed && selectedIndex < files.size() - 1) {
+            selectedIndex += 1;
+            master.clear_line(1);
+            pros::delay(50);
+        }
+        
+        if (selectedIndex > 0) master.set_text(0, 0, "^"); else master.clear_line(0);
+        pros::delay(50);
+        master.set_text(1, 0, ("(A)" + files[selectedIndex]).c_str()); 
+        pros::delay(50);
+        if (selectedIndex < files.size() - 1) master.set_text(2, 0, "V"); else master.clear_line(2); 
+        pros::delay(50);
+    }
+    pros::delay(10);
+}
+
+bool checkSave() {
+    master.clear();
+    pros::delay(50);
+    master.set_text(0, 0, "(A)SAVE RECORDING");
+    pros::delay(50);
+    master.set_text(1, 0, "(B)CANCEL");
+    pros::delay(50);
+
+    while (true) {
+        bool aPressed = master.get_digital_new_press(DIGITAL_A);
+        bool bPressed = master.get_digital_new_press(DIGITAL_B);
+        
+        if (aPressed) return true;
+        if (bPressed) return false;
+        pros::delay(20);
     }
 }
 
-void disabled() {
-    drivetrain.set_brake_mode(pros::E_MOTOR_BRAKE_COAST);
-    drivetrain.move(0);
-    intake.move(0);
-    outtakeB.move(0);
-}
+void reInitialize() {
+    if (pros::usd::is_installed() == 0) exit(2);
+    pros::delay(10);
 
-void competition_initialize() {
-    pros::lcd::initialize();
-    pros::lcd::set_text(0, "INITIALIZING");
+    master.clear();
+    pros::delay(50);
+    master.set_text(0, 0, "RECALIBRATING");
+    pros::delay(50);
+    master.set_text(1, 0, "DO NOT MOVE BOT");
+    pros::delay(50);
 
     drivetrain.set_gearing(pros::E_MOTOR_GEAR_BLUE);
-    left_mg.set_gearing(pros::E_MOTOR_GEAR_BLUE);
-    right_mg.set_gearing(pros::E_MOTOR_GEAR_BLUE);
+    leftMg.set_gearing(pros::E_MOTOR_GEAR_BLUE);
+    rightMg.set_gearing(pros::E_MOTOR_GEAR_BLUE);
 
     drivetrain.set_encoder_units(pros::E_MOTOR_ENCODER_DEGREES);
-    left_mg.set_encoder_units(pros::E_MOTOR_ENCODER_DEGREES);
-    right_mg.set_encoder_units(pros::E_MOTOR_ENCODER_DEGREES);
+    leftMg.set_encoder_units(pros::E_MOTOR_ENCODER_DEGREES);
+    rightMg.set_encoder_units(pros::E_MOTOR_ENCODER_DEGREES);
 
-    left_mg.set_brake_mode(pros::E_MOTOR_BRAKE_COAST);
-    right_mg.set_brake_mode(pros::E_MOTOR_BRAKE_COAST);
+    leftMg.set_brake_mode(pros::E_MOTOR_BRAKE_COAST);
+    rightMg.set_brake_mode(pros::E_MOTOR_BRAKE_COAST);
     intake.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
     outtakeB.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
     
-    piston_D.set_value(0);
-    piston_A.set_value(0);
+    inertial.reset(true);
 
-    inertial.reset();
-    while (inertial.is_calibrating())
-    {
-        pros::delay(10);
-    }
+    pistonA.set_value(0);
+    pistonD.set_value(0);
+    pros::delay(100);
 }
 
 void autonomous() {
-    FILE* file = fopen("/usd/misc.txt", "r");
-    if (!file) {
-        pros::lcd::set_text(1, "SD Missing / No File");
-        exit;
+    reInitialize();
+
+    // Check if file exists
+    if (playbackInfo.selectedFile.empty()) {
+        master.clear();
+        pros::delay(50);
+        master.set_text(0, 0, "NO FILE");
+        pros::delay(3000);
+        return;
     }
+    FILE* file = fopen(("/usd/" + playbackInfo.selectedFile).c_str(), "rb");
+    // if (!file) exit(3);
+    
+    // Find size of file
+    fseek(file, 0, SEEK_END);
+    size_t fileSize = ftell(file);
+    rewind(file);
 
-    double left_v_read, right_v_read;
-    double intake_cmd, outtakeB_cmd;
-    int piston_D_state;
-    int piston_A_state;
-    double target_rotation, current_rotation, rotation_difference;
-    double rotation_difference_bounds = 10;
+    size_t frameCount = fileSize / sizeof(InputFrame);
 
-    pros::lcd::set_text(0, "RECORDING ACTIVE");
-    pros::delay(5);
+    // Create vector of inputFrames
+    std::vector<InputFrame> frames(frameCount);
+    fread(frames.data(), sizeof(InputFrame), frameCount, file);
+    
+    double rKp = 0.2;
 
-	while (pros::competition::is_autonomous() && !pros::competition::is_disabled() && !feof(file) && master.get_digital(DIGITAL_DOWN) == 0)
-	{
-		fscanf(file, "%lf %lf %lf %lf %d %d %lf", &left_v_read, &right_v_read, &intake_cmd, &outtakeB_cmd, &piston_D_state, &piston_A_state, &target_rotation); // Add variable retrieval for rotation
+    master.clear();
+    pros::delay(50);
+    master.set_text(0, 0, (playbackInfo.selectedFile).c_str());
+    pros::delay(50);
+    master.set_text(0, 0, "PLAYBACK");
+    pros::delay(1000);
+
+    // Check if still in autonomous mode, is not disabled, and the frames have not ended 
+    for (const auto& f : frames) {
+        if (master.get_digital_new_press(DIGITAL_DOWN)) break;
+        double rotationDifference = inertial.get_rotation() - f.rotation * rKp;
+        printf("%f", rotationDifference);
+
+        pros::delay(10);
         
-        current_rotation = inertial.get_rotation();
+        leftMg.move(std::clamp(f.leftV - (int16_t)rotationDifference, -127, 127));
+        rightMg.move(std::clamp(f.rightV + (int16_t)rotationDifference, -127, 127));
+        intake.move(f.intakeCmd);
+        outtakeB.move(f.outtakeBCmd);
+        outtakeT.move(f.outtakeTCmd);
+        pistonD.set_value(f.pistonD);
+        pistonA.set_value(f.pistonA);
 
-        pros::delay(7);
-
-        rotation_difference = target_rotation - current_rotation * 0.5;
-        if (std::isinf(rotation_difference) || std::isnan(rotation_difference)) rotation_difference = 0.0;
-        std::clamp(rotation_difference, -rotation_difference_bounds, rotation_difference_bounds);
-
-        double left_v = left_v_read - rotation_difference;
-        double right_v = right_v_read + rotation_difference;
-
-        printf("Rotation: %lf  Difference: %lf  LeftV: %lf  RightV: %lf\n", current_rotation, rotation_difference, left_v, right_v);
-
-        pros::delay(8);
-
-        left_mg.move(left_v);
-        right_mg.move(right_v);
-        intake.move(intake_cmd);
-        outtakeB.move(outtakeB_cmd);
-        outtakeT.move(std::abs(outtakeB_cmd));
-        piston_D.set_value(piston_D_state);
-        piston_A.set_value(piston_A_state);
-
-        pros::delay(35);
-	}
+        pros::delay(10);
+    }
     fclose(file);
-    left_mg.move(0);
-    right_mg.move(0);
-    intake.move(0);
-    outtakeB.move(0);
+    pros::delay(10);
 
-    pros::delay(5);
-	pros::lcd::set_text(0, "ENDING PLAYBACK");
+    master.clear();
+    pros::delay(50);
+    master.set_text(0, 0, "ENDING");
+    pros::delay(1000);
 }
 
-void opcontrol() {
-    pros::lcd::set_text(0, "STARTING OPCONTROL");
+void overwrite() {    
+    reInitialize();
 
-    FILE* file = fopen("/usd/misc.txt", "w");
-
-    float base_speed = 0.4f;
-    float fast_speed = 0.8f;
-    float curr_speed_mult = base_speed;
-    int prev_speed_toggle = 0;
-    int prev_pneumatic_D_toggle = 0;
-    int prev_pneumatic_A_toggle = 0;
-    bool pneumatics_D_extended = false;
-    bool pneumatics_A_extended = false;
-    double outtakeT_cmd = 0;
-    double current_rotation = 0.0;
-
-    pros::lcd::set_text(0, "RECORDING ACTIVE");
-    pros::delay(10);
+    // Check if file exists
+    if (playbackInfo.selectedFile.empty()) {
+        master.clear();
+        pros::delay(50);
+        master.set_text(0, 0, "NO FILE");
+        pros::delay(3000);
+        return;
+    }
     
-    while (master.get_digital(DIGITAL_DOWN) == 0) {
+    // Sets the amount of input frames that can be recorded. 
+    // Calculate by multiplying amount of seconds by the total delay of the driver control loop. 
+    constexpr size_t frameMax = 6000;
+    std::vector<InputFrame> buffer;
+    buffer.reserve(frameMax);
+
+    float baseSpeed = 0.4f;
+    float fastSpeed = 0.8f;
+    float currSpeedMult = baseSpeed;
+    bool pistonDExtended = false;
+    bool pistonAExtended = false;
+    double outtakeTCmd = 0;
+    pros::delay(20);
+
+    master.clear();
+    pros::delay(50);
+    master.set_text(0, 0, (playbackInfo.selectedFile).c_str());
+    pros::delay(50);
+    master.set_text(0, 0, "OVERWRITE");
+    pros::delay(50);
+    
+    while (!master.get_digital_new_press(DIGITAL_DOWN)) {
         int vertical = master.get_analog(ANALOG_LEFT_Y);
         int horizontal = master.get_analog(ANALOG_RIGHT_X);
 
-        int intake_in = master.get_digital(DIGITAL_R1);
-        int intake_out = master.get_digital(DIGITAL_R2);
-        int outtakeB_up = master.get_digital(DIGITAL_L1);
-        int outtakeB_down = master.get_digital(DIGITAL_L2);
+        int intakeIn = master.get_digital(DIGITAL_R1);
+        int intakeOut = master.get_digital(DIGITAL_R2);
+        int outtakeBUp = master.get_digital(DIGITAL_L1);
+        int outtakeBDown = master.get_digital(DIGITAL_L2);
 
-        int pneumatics_D_triggered = master.get_digital(DIGITAL_A);
-        int pneumatics_A_triggered = master.get_digital(DIGITAL_X);
-        int speed_toggle = master.get_digital(DIGITAL_B);
-
-        current_rotation = inertial.get_rotation();
+        int pistonDTriggered = master.get_digital_new_press(DIGITAL_A);
+        int pistonATriggered = master.get_digital_new_press(DIGITAL_X);
+        int speedToggle = master.get_digital_new_press(DIGITAL_B);
 
         pros::delay(5);
         
         // Pneumatics DEScore toggle
-        if (pneumatics_D_triggered && !prev_pneumatic_D_toggle) {
-            pneumatics_D_extended = !pneumatics_D_extended;
-            piston_D.set_value(pneumatics_D_extended);
+        if (pistonDTriggered) {
+            pistonDExtended = !pistonDExtended;
+            pistonD.set_value(pistonDExtended);
         }
 
         // Pneumatics ARM toggle
-        if (pneumatics_A_triggered && !prev_pneumatic_A_toggle) {
-            pneumatics_A_extended = !pneumatics_A_extended;
-            piston_A.set_value(pneumatics_A_extended);
+        if (pistonATriggered) {
+            pistonAExtended = !pistonAExtended;
+            pistonA.set_value(pistonAExtended);
         }
 
         // Speed toggle
-        if (speed_toggle && !prev_speed_toggle) {
-            curr_speed_mult = (curr_speed_mult == base_speed) ? fast_speed : base_speed;
+        if (speedToggle) {
+            currSpeedMult = (currSpeedMult == baseSpeed) ? fastSpeed : baseSpeed;
         }
 
-        prev_pneumatic_D_toggle = pneumatics_D_triggered;
-        prev_pneumatic_A_toggle = pneumatics_A_triggered;
-        prev_speed_toggle = speed_toggle;
+        double leftVoltage = std::clamp((vertical + horizontal) * currSpeedMult, -127.0f, 127.0f);
+        double rightVoltage = std::clamp((vertical - horizontal) * currSpeedMult, -127.0f, 127.0f);
 
-        double left_voltage = (vertical + horizontal) * curr_speed_mult;
-        double right_voltage = (vertical - horizontal) * curr_speed_mult;
+        double intakeCmd = (intakeIn - intakeOut) * 127;
+        double outtakeBCmd = 0;
+        if (outtakeBUp == 1 && outtakeBDown == 0) outtakeBCmd = -127; else if (outtakeBUp == 0 && outtakeBDown == 1) outtakeBCmd = 67;
+        if (outtakeBUp == 1 || outtakeBDown == 1) outtakeTCmd = 127; else outtakeTCmd = 0;
 
-        double intake_cmd = (intake_in - intake_out) * 127;
-        double outtakeB_cmd = 0;
-        if (outtakeB_up == 1 && outtakeB_down == 0) outtakeB_cmd = -127; else if (outtakeB_up == 0 && outtakeB_down == 1) outtakeB_cmd = 67;
-        if (outtakeB_up == 1 || outtakeB_down == 1) outtakeT_cmd = 127; else outtakeT_cmd = 0;
+        pros::delay(5);
+
+        leftMg.move(leftVoltage);
+        rightMg.move(rightVoltage);
+        intake.move(intakeCmd);
+        outtakeB.move(outtakeBCmd);
+        outtakeT.move(outtakeTCmd);
+        
+        buffer.push_back({
+            (int16_t)leftVoltage,
+            (int16_t)rightVoltage,
+            (int16_t)intakeCmd,
+            (int16_t)outtakeBCmd,
+            (int16_t)outtakeTCmd,
+            (uint8_t)pistonDExtended,
+            (uint8_t)pistonAExtended,
+            (double_t)inertial.get_rotation()
+        });
 
         pros::delay(10);
-
-        left_mg.move(left_voltage);
-        right_mg.move(right_voltage);
-        intake.move(intake_cmd);
-        outtakeB.move(outtakeB_cmd);
-        outtakeT.move(outtakeT_cmd);
-        
-        fprintf(file, "%lf %lf %lf %lf %d %d %lf\n", left_voltage, right_voltage, intake_cmd, outtakeB_cmd, pneumatics_D_extended, pneumatics_A_extended, current_rotation);
-
-        pros::delay(35);
     }
-	fflush(file);
-    if (file) fclose(file);
-    left_mg.move(0);
-    right_mg.move(0);
+    disabled();
+    pros::delay(20);
+
+    
+    if (checkSave()) {
+        FILE* file = fopen(("/usd/" + playbackInfo.selectedFile).c_str(), "wb");
+        master.clear();
+        pros::delay(50);
+        master.set_text(0, 0, "WRITING");
+        pros::delay(50);
+        master.set_text(1, 0, "DO NOT KILL");
+        pros::delay(50);
+        fwrite(buffer.data(), sizeof(InputFrame), buffer.size(), file);
+        fclose(file);
+        pros::delay(50);
+    }
+    pros::delay(10);
+
+    master.clear();
+    pros::delay(50);
+}
+
+void extend() {
+    reInitialize();
+
+    // Check if file exists
+    if (playbackInfo.selectedFile.empty()) {
+        master.clear();
+        pros::delay(50);
+        master.set_text(0, 0, "NO FILE");
+        pros::delay(3000);
+        return;
+    }
+    FILE* fileR = fopen(("/usd/" + playbackInfo.selectedFile).c_str(), "rb");
+    if (!fileR) exit(3);
+
+    // Find size of file
+    fseek(fileR, 0, SEEK_END);
+    size_t fileSize = ftell(fileR);
+    rewind(fileR);
+
+    size_t frameCount = fileSize / sizeof(InputFrame);
+
+    // Create vector of inputFrames
+    std::vector<InputFrame> frames(frameCount);
+    fread(frames.data(), sizeof(InputFrame), frameCount, fileR);
+
+    // Sets the amount of input frames that can be recorded. 
+    // Calculate by multiplying amount of seconds by the total delay of the driver control loop. 
+    constexpr size_t frameMax = 6000;
+    std::vector<InputFrame> buffer;
+    buffer.reserve(frameMax);
+
+    float baseSpeed = 0.4f;
+    float fastSpeed = 0.8f;
+    float currSpeedMult = baseSpeed;
+    bool pistonDExtended = false;
+    bool pistonAExtended = false;
+    double outtakeTCmd = 0;
+    double rKp = 0.2;
+    pros::delay(20);
+
+    master.clear();
+    pros::delay(50);
+    master.set_text(0, 0, (playbackInfo.selectedFile).c_str());
+    pros::delay(50);
+    master.set_text(1, 0, "EXTEND");
+    pros::delay(50);
+
+    // Check if still in autonomous mode, is not disabled, and the frames have not ended 
+    for (const auto& f : frames) {
+        double rotationDifference = inertial.get_rotation() - f.rotation * rKp;
+        printf("%f", rotationDifference);
+        pros::delay(10);
+        
+        leftMg.move(std::clamp(f.leftV - (int16_t)rotationDifference, -127, 127));
+        rightMg.move(std::clamp(f.rightV + (int16_t)rotationDifference, -127, 127));
+        intake.move(f.intakeCmd);
+        outtakeB.move(f.outtakeBCmd);
+        outtakeT.move(f.outtakeTCmd);
+        pistonD.set_value(f.pistonD);
+        pistonA.set_value(f.pistonA);
+
+        pros::delay(10);
+    }
+    while (!master.get_digital_new_press(DIGITAL_DOWN)) {
+        int vertical = master.get_analog(ANALOG_LEFT_Y);
+        int horizontal = master.get_analog(ANALOG_RIGHT_X);
+
+        int intakeIn = master.get_digital(DIGITAL_R1);
+        int intakeOut = master.get_digital(DIGITAL_R2);
+        int outtakeBUp = master.get_digital(DIGITAL_L1);
+        int outtakeBDown = master.get_digital(DIGITAL_L2);
+
+        int pistonDTriggered = master.get_digital_new_press(DIGITAL_A);
+        int pistonATriggered = master.get_digital_new_press(DIGITAL_X);
+        int speedToggle = master.get_digital_new_press(DIGITAL_B);
+
+        pros::delay(5);
+        
+        // Pneumatics DEScore toggle
+        if (pistonDTriggered) {
+            pistonDExtended = !pistonDExtended;
+            pistonD.set_value(pistonDExtended);
+        }
+
+        // Pneumatics ARM toggle
+        if (pistonATriggered) {
+            pistonAExtended = !pistonAExtended;
+            pistonA.set_value(pistonAExtended);
+        }
+
+        // Speed toggle
+        if (speedToggle) {
+            currSpeedMult = (currSpeedMult == baseSpeed) ? fastSpeed : baseSpeed;
+        }
+
+        double leftVoltage = std::clamp((vertical + horizontal) * currSpeedMult, -127.0f, 127.0f);
+        double rightVoltage = std::clamp((vertical - horizontal) * currSpeedMult, -127.0f, 127.0f);
+
+        double intakeCmd = (intakeIn - intakeOut) * 127;
+        double outtakeBCmd = 0;
+        if (outtakeBUp == 1 && outtakeBDown == 0) outtakeBCmd = -127; else if (outtakeBUp == 0 && outtakeBDown == 1) outtakeBCmd = 67;
+        if (outtakeBUp == 1 || outtakeBDown == 1) outtakeTCmd = 127; else outtakeTCmd = 0;
+
+        pros::delay(5);
+
+        leftMg.move(leftVoltage);
+        rightMg.move(rightVoltage);
+        intake.move(intakeCmd);
+        outtakeB.move(outtakeBCmd);
+        outtakeT.move(outtakeTCmd);
+        
+        buffer.push_back({
+            (int16_t)leftVoltage,
+            (int16_t)rightVoltage,
+            (int16_t)intakeCmd,
+            (int16_t)outtakeBCmd,
+            (int16_t)outtakeTCmd,
+            (uint8_t)pistonDExtended,
+            (uint8_t)pistonAExtended,
+            (double_t)inertial.get_rotation()
+        });
+
+        pros::delay(10);
+    }
+    disabled();
+    pros::delay(20);
+    
+    
+    if (checkSave()) {
+        FILE* fileW = fopen(("/usd/" + playbackInfo.selectedFile).c_str(), "ab");
+        master.clear();
+        pros::delay(50);
+        master.set_text(0, 0, "WRITING TO FILE");
+        pros::delay(50);
+        master.set_text(1, 0, "DO NOT KILL PROGRAM");
+        pros::delay(50);
+        fwrite(buffer.data(), sizeof(InputFrame), buffer.size(), fileW);
+        fclose(fileW);
+        pros::delay(50);
+    }
+    fclose(fileR);
+    pros::delay(10);
+
+    master.clear();
+    pros::delay(50);
+}
+
+void playback() {
+        master.clear();
+        pros::delay(50);
+        master.set_text(0, 0, "NO FILE SELECTED");
+        pros::delay(50);
+        master.set_text(1, 0, "(X)CHANGE FILE");
+        pros::delay(50);
+        master.set_text(2, 0, "(A)CONTINUE");
+        pros::delay(50);
+    while (true) {
+        bool xPressed = master.get_digital_new_press(DIGITAL_X);
+        bool aPressed = master.get_digital_new_press(DIGITAL_A);
+        bool bPressed = master.get_digital_new_press(DIGITAL_B);
+        if (xPressed) {
+            fileSelection();
+            master.clear();
+            pros::delay(50);
+            if (playbackInfo.selectedFile.empty()) master.set_text(0, 0, "NO FILE SELECTED"); else master.set_text(0, 0, (playbackInfo.selectedFile).c_str());
+            pros::delay(50);
+            master.set_text(1, 0, "(X)CHANGE FILE");
+            pros::delay(50);
+            master.set_text(2, 0, "(A)CONTINUE");
+            pros::delay(50);
+        } else if (aPressed) {
+            break;
+        } else if (bPressed) {
+            exit(0);
+        }
+        pros::delay(10);
+    }
+    pros::delay(10);
+
+    master.clear();
+    pros::delay(50);
+    master.set_text(0, 0, "(X)AUTONOMOUS");
+    pros::delay(50);
+    master.set_text(1, 0, "(Y)OVERWRITE");
+    pros::delay(50);
+    master.set_text(2, 0, "(A)EXTEND");
+    pros::delay(50);
+
+    while (true) {
+        bool xPressed = master.get_digital_new_press(DIGITAL_X);
+        bool yPressed = master.get_digital_new_press(DIGITAL_Y);
+        bool aPressed = master.get_digital_new_press(DIGITAL_A);
+        bool bPressed = master.get_digital_new_press(DIGITAL_B);
+
+        if (bPressed) {
+            break;
+        }
+        if (xPressed) {
+            autonomous();
+            break;
+        }
+        if (yPressed) {
+            overwrite();
+            break;
+        }
+        if (aPressed) {
+            extend();
+            break;
+        }
+        pros::delay(30);
+    }
+}
+
+void initialize() {
+    // Check if microSD is inserted
+    if (pros::usd::is_installed() == 0) exit(2);
+    pros::delay(10);
+
+    master.clear();
+    pros::delay(50);
+    master.set_text(0, 0, "CALIBRATING");
+    pros::delay(50);
+    master.set_text(1, 0, "DO NOT MOVE BOT");
+    pros::delay(50);
+
+    drivetrain.set_gearing(pros::E_MOTOR_GEAR_BLUE);
+    leftMg.set_gearing(pros::E_MOTOR_GEAR_BLUE);
+    rightMg.set_gearing(pros::E_MOTOR_GEAR_BLUE);
+
+    drivetrain.set_encoder_units(pros::E_MOTOR_ENCODER_DEGREES);
+    leftMg.set_encoder_units(pros::E_MOTOR_ENCODER_DEGREES);
+    rightMg.set_encoder_units(pros::E_MOTOR_ENCODER_DEGREES);
+
+    leftMg.set_brake_mode(pros::E_MOTOR_BRAKE_COAST);
+    rightMg.set_brake_mode(pros::E_MOTOR_BRAKE_COAST);
+    intake.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
+    outtakeB.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
+    
+    inertial.reset(true);
+
+    pistonA.set_value(0);
+    pistonD.set_value(0);
+    pros::delay(20);
+
+    while (pros::battery::get_capacity() > 10.0)
+    {
+        playback();
+        disabled();
+        pros::delay(10);
+    }
+    exit(1);
+}
+
+void disabled() {
+    drivetrain.set_brake_mode(pros::E_MOTOR_BRAKE_COAST);
+    
+    leftMg.move(0);
+    rightMg.move(0);
     intake.move(0);
     outtakeB.move(0);
+    outtakeT.move(0);
+}
 
-    pros::delay(5);
-	pros::lcd::set_text(0, "ENDING RECORDING");
+void competition_initialize() {
+    // Check if microSD is inserted
+    if (pros::usd::is_installed() == 0) exit(2);
+    pros::delay(10);
+
+    master.clear();
+    pros::delay(50);
+    master.set_text(0, 0, "CALIBRATING");
+    pros::delay(50);
+    master.set_text(1, 0, "DO NOT MOVE BOT");
+    pros::delay(50);
+
+    drivetrain.set_gearing(pros::E_MOTOR_GEAR_BLUE);
+    leftMg.set_gearing(pros::E_MOTOR_GEAR_BLUE);
+    rightMg.set_gearing(pros::E_MOTOR_GEAR_BLUE);
+
+    drivetrain.set_encoder_units(pros::E_MOTOR_ENCODER_DEGREES);
+    leftMg.set_encoder_units(pros::E_MOTOR_ENCODER_DEGREES);
+    rightMg.set_encoder_units(pros::E_MOTOR_ENCODER_DEGREES);
+
+    leftMg.set_brake_mode(pros::E_MOTOR_BRAKE_COAST);
+    rightMg.set_brake_mode(pros::E_MOTOR_BRAKE_COAST);
+    intake.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
+    outtakeB.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
+    
+    inertial.reset(true);
+
+    pistonA.set_value(0);
+    pistonD.set_value(0);
+    pros::delay(20);
+
+    while (pros::battery::get_capacity() > 10.0)
+    {
+        playback();
+        disabled();
+        pros::delay(10);
+    }
+    exit(1);
 }
