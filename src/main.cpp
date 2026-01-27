@@ -33,11 +33,6 @@ std::vector<std::string> indexFiles(const char* path = "/") {
     return files;
 }
 
-// Used for GUI and playback selection
-struct {
-    std::string selectedFile;
-} playbackInfo;
-
 // Used for recording inputs. The buffer is stored in RAM to avoid timing inconsistencies during runtime.
 struct InputFrame {
     // Use 16-bit for smaller memory footprint
@@ -50,6 +45,12 @@ struct InputFrame {
     uint8_t pistonA;
     double rotation;
 };
+
+// Used for GUI and playback selection
+struct {
+    std::string selectedFile;
+    std::vector<InputFrame> frames;
+} playbackInfo;
 
 void fileSelection() {
     std::vector<std::string> files = indexFiles();
@@ -174,8 +175,8 @@ void autonomous() {
     size_t frameCount = fileSize / sizeof(InputFrame);
 
     // Create vector of inputFrames
-    std::vector<InputFrame> frames(frameCount);
-    fread(frames.data(), sizeof(InputFrame), frameCount, file);
+    playbackInfo.frames.resize(frameCount);
+    fread(playbackInfo.frames.data(), sizeof(InputFrame), frameCount, file);
     
     double rKp = 0.2;
     double rKd = 0.3;
@@ -188,7 +189,7 @@ void autonomous() {
     master.set_text(1, 0, "AUTONOMOUS");
     pros::delay(1000);
 
-    for (const auto& f : frames) {
+    for (const auto& f : playbackInfo.frames) {
         if (master.get_digital(DIGITAL_DOWN)) break;
 
         double currentRotation = inertial.get_rotation();
@@ -284,7 +285,7 @@ void overwrite() {
         double rightVoltage = std::clamp((vertical - horizontal) * currSpeedMult, -127.0f, 127.0f);
 
         double intakeCmd = 0;
-        if (intakeIn == 1 && intakeOut == 0) intakeCmd = 127; else if (intakeIn == 0 && intakeOut == 1) intakeCmd = -80;
+        if (intakeIn == 1 && intakeOut == 0) intakeCmd = 127; else if (intakeIn == 0 && intakeOut == 1) intakeCmd = -100;
         double outtakeBCmd = 0;
         if (outtakeBUp == 1 && outtakeBDown == 0) outtakeBCmd = -127; else if (outtakeBUp == 0 && outtakeBDown == 1) outtakeBCmd = 67;
         double outtakeTCmd = 0;
@@ -366,8 +367,8 @@ void extend() {
     size_t frameCount = fileSize / sizeof(InputFrame);
 
     // Create vector of inputFrames
-    std::vector<InputFrame> frames(frameCount);
-    fread(frames.data(), sizeof(InputFrame), frameCount, file);
+    playbackInfo.frames.resize(frameCount);
+    fread(playbackInfo.frames.data(), sizeof(InputFrame), frameCount, file);
 
     // Sets the amount of input frames that can be recorded. 
     // Calculate by multiplying amount of seconds by the total delay of the driver control loop. 
@@ -393,7 +394,7 @@ void extend() {
     master.set_text(1, 0, "EXTEND");
     pros::delay(50);
 
-    for (const auto& f : frames) {
+    for (const auto& f : playbackInfo.frames) {
         if (master.get_digital(DIGITAL_DOWN)) break;
 
         double currentRotation = inertial.get_rotation();
@@ -447,7 +448,7 @@ void extend() {
         double rightVoltage = std::clamp((vertical - horizontal) * currSpeedMult, -127.0f, 127.0f);
 
         double intakeCmd = 0;
-        if (intakeIn == 1 && intakeOut == 0) intakeCmd = 127; else if (intakeIn == 0 && intakeOut == 1) intakeCmd = -80;
+        if (intakeIn == 1 && intakeOut == 0) intakeCmd = 127; else if (intakeIn == 0 && intakeOut == 1) intakeCmd = -100;
         double outtakeBCmd = 0;
         if (outtakeBUp == 1 && outtakeBDown == 0) outtakeBCmd = -127; else if (outtakeBUp == 0 && outtakeBDown == 1) outtakeBCmd = 67;
         double outtakeTCmd = 0;
