@@ -11,6 +11,21 @@ pros::adi::DigitalOut pistonA('A'); // Arm
 pros::Motor intake(-2);
 pros::Motor outtakeB(9); // Outtake bottom
 pros::Motor outtakeT(-19); // Outtake top
+pros::Imu inertial(11);
+
+// OPControl Settings
+const int intakeInSpeed = 127;
+const int intakeOutSpeed = -90;
+const int outtakeBUpSpeed = -127;
+const int outtakeBDownSpeed = 67;
+const int outtakeTSpeed = 127;
+
+const float baseSpeed = 0.4f;
+const float fastSpeed = 0.8f;
+
+// Autonomous Settings
+const double rKp = 0.2;
+const double rKd = 0.3;
 
 std::vector<std::string> indexFiles(const char* path = "/") {
     std::vector<std::string> files;
@@ -177,8 +192,6 @@ void autonomous() {
     playbackInfo.frames.resize(frameCount);
     fread(playbackInfo.frames.data(), sizeof(InputFrame), frameCount, file);
     
-    double rKp = 0.2;
-    double rKd = 0.3;
     double previousError = 0.0;
 
     master.clear();
@@ -235,8 +248,6 @@ void overwrite() {
     std::vector<InputFrame> buffer;
     buffer.reserve(frameMax);
 
-    float baseSpeed = 0.4f;
-    float fastSpeed = 0.8f;
     float currSpeedMult = baseSpeed;
     bool pistonDExtended = false;
     bool pistonAExtended = false;
@@ -284,11 +295,11 @@ void overwrite() {
         double rightVoltage = std::clamp((vertical - horizontal) * currSpeedMult, -127.0f, 127.0f);
 
         double intakeCmd = 0;
-        if (intakeIn == 1 && intakeOut == 0) intakeCmd = 127; else if (intakeIn == 0 && intakeOut == 1) intakeCmd = -100;
+        if (intakeIn == 1 && intakeOut == 0) intakeCmd = intakeInSpeed; else if (intakeIn == 0 && intakeOut == 1) intakeCmd = intakeOutSpeed;
         double outtakeBCmd = 0;
-        if (outtakeBUp == 1 && outtakeBDown == 0) outtakeBCmd = -127; else if (outtakeBUp == 0 && outtakeBDown == 1) outtakeBCmd = 67;
+        if (outtakeBUp == 1 && outtakeBDown == 0) outtakeBCmd = outtakeBUpSpeed; else if (outtakeBUp == 0 && outtakeBDown == 1) outtakeBCmd = outtakeBDownSpeed;
         double outtakeTCmd = 0;
-        if (outtakeBUp == 1 || outtakeBDown == 1) outtakeTCmd = 127;
+        if (outtakeBUp == 1 || outtakeBDown == 1) outtakeTCmd = outtakeTSpeed;
 
         leftMg.move(leftVoltage);
         rightMg.move(rightVoltage);
@@ -331,7 +342,7 @@ void overwrite() {
         fwrite(buffer.data(), sizeof(InputFrame), buffer.size(), file);
         fclose(file);
         pros::delay(50);
-    }
+    } else buffer.clear();
     pros::delay(10);
 
     master.clear();
@@ -375,14 +386,10 @@ void extend() {
     std::vector<InputFrame> buffer;
     buffer.reserve(frameMax);
 
-    float baseSpeed = 0.4f;
-    float fastSpeed = 0.8f;
     float currSpeedMult = baseSpeed;
     bool pistonDExtended = false;
     bool pistonAExtended = false;
 
-    double rKp = 0.2;
-    double rKd = 0.3;
     double previousError = 0.0;
     pros::delay(20);
 
@@ -447,11 +454,11 @@ void extend() {
         double rightVoltage = std::clamp((vertical - horizontal) * currSpeedMult, -127.0f, 127.0f);
 
         double intakeCmd = 0;
-        if (intakeIn == 1 && intakeOut == 0) intakeCmd = 127; else if (intakeIn == 0 && intakeOut == 1) intakeCmd = -100;
+        if (intakeIn == 1 && intakeOut == 0) intakeCmd = intakeInSpeed; else if (intakeIn == 0 && intakeOut == 1) intakeCmd = intakeOutSpeed;
         double outtakeBCmd = 0;
-        if (outtakeBUp == 1 && outtakeBDown == 0) outtakeBCmd = -127; else if (outtakeBUp == 0 && outtakeBDown == 1) outtakeBCmd = 67;
+        if (outtakeBUp == 1 && outtakeBDown == 0) outtakeBCmd = outtakeBUpSpeed; else if (outtakeBUp == 0 && outtakeBDown == 1) outtakeBCmd = outtakeBDownSpeed;
         double outtakeTCmd = 0;
-        if (outtakeBUp == 1 || outtakeBDown == 1) outtakeTCmd = 127;
+        if (outtakeBUp == 1 || outtakeBDown == 1) outtakeTCmd = outtakeTSpeed;
 
         leftMg.move(leftVoltage);
         rightMg.move(rightVoltage);
@@ -486,7 +493,7 @@ void extend() {
         fwrite(buffer.data(), sizeof(InputFrame), buffer.size(), fileW);
         fclose(fileW);
         pros::delay(50);
-    }
+    } else buffer.clear();
     fclose(file);
     pros::delay(10);
 
