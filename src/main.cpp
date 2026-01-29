@@ -606,7 +606,7 @@ void initialize() {
 }
 
 void disabled() {
-    drivetrain.set_brake_mode(pros::E_MOTOR_BRAKE_COAST);
+    drivetrain.set_brake_mode(pros::E_MOTOR_BRAKE_BRAKE);
     
     leftMg.move(0);
     rightMg.move(0);
