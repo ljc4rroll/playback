@@ -6,39 +6,66 @@ The playback system allows for the recording and mirroring of driver inputs, pri
 
 ## Usage
 
-When you run the program for driver control, the specified file at line 120 will be overwritten.
-```
-FILE* file = fopen("/usd/misc.txt", "w");
-```
-Ensure that these are saved as txt files, and only change the name of the specified file, not the extension.
+First mount the SD card and create files (use 'touch' in the terminal on Mac) with any names that you want (under ~15 characters) and no extension.
 
-When you run the program for autonomous, the sepecified file at line 73 will be read. 
+When you run the program, the controller's screen will look something like this:
+
 ```
-FILE* file = fopen("/usd/misc.txt", "r");
+NO FILE SELECTED
+(X)CHANGE FILE
+(A)CONTINUE
 ```
-The consistency of the playback system relies on synchronized delay between reading each line and applying the inputs across recording and reading. Do not change the delays unless you know what you are doing.
+
+After selecting a file, pressing A to continue will change the screen to this:
+
+```
+(X)AUTONOMOUS
+(Y)OVERWRITE
+(A)EXTEND
+```
+
+Autnomous will run the selected file, overwrite will record driver inputs to a file (press down to end recording), and extend will first run autonomous then record and append to the file.
+
+For competitions, you must structure your code to select a file before you plug the controller into competition control.
+
+```
+if (!pros::competition::is_connected()) {
+        master.clear();
+        pros::delay(50);
+        master.set_text(0, 0, "NO FILE SELECTED");
+        pros::delay(50);
+        master.set_text(1, 0, "(X)CHANGE FILE");
+        pros::delay(50);     
+        while (!pros::competition::is_connected()) {
+            if (master.get_digital_new_press(DIGITAL_X)) {
+                fileSelection();
+
+                master.clear();
+                pros::delay(50);
+                if (playbackInfo.selectedFile.empty()) {
+                    master.set_text(0, 0, "NO FILE SELECTED"); 
+                } else {
+                    master.set_text(0, 0, (playbackInfo.selectedFile).c_str());
+                }
+                pros::delay(50);
+                master.set_text(1, 0, "(X)CHANGE FILE");
+                pros::delay(50);
+            }
+            pros::delay(20);
+        }
+    }
+```
+
 ## FAQ
 
 #### Is this legal?
 
 Yes. As of version 2.2 of the Push Back handbook, autonomous is defined as such:
 ```
-Autonomous Period - A time period during which Robots operate and react only to sensor inputs and
-pre-programmed commands.
+Autonomous Period - A time period during which Robots operate and react only to sensor inputs
+and pre-programmed commands.
 ```
-
-#### The file formatting doesn't match what I have on my robot. How can I change this?
-
-On lines 93 and 192, the standard library functions used are fscanf and fprintf. Look at the documentation here for how to format everything to your inputs:
-
-[https://cplusplus.com/reference/cstdio/fscanf/]
-
-[https://cplusplus.com/reference/cstdio/fprintf/]
-
-Just make sure that you keep the \n to create new lines or it won't be parsed correctly.
 
 ## Roadmap
 
-- User interface during initialization to allow for easy selection, creation, overwriting, deletion, and extension of files without requiring the microSD card to be removed and modified manually or the specified files to be changed and uploaded constantly.
-
-- Active rotation correction using a proportional controller and inertial sensor, increasing consistency despite field variation.
+- Odometry integration
