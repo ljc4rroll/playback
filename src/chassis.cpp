@@ -1,17 +1,17 @@
 #include "chassis.hpp"
 
-// Settings
-const double baseSpeed = 0.4;
-const double fastSpeed = 0.8;
-double currSpeedMult = baseSpeed;
-
 Chassis::Chassis() : leftMG_({-10, -7, -1}),
                      rightMG_({20, 5, 14}) {}
 
-void Chassis::arcade(double vertical, double horizontal)
+std::pair<double, double> Chassis::arcade(double vertical, double horizontal)
 {
-    leftMG_.move(std::clamp((vertical + horizontal) * currSpeedMult, -127.0, 127.0));
-    rightMG_.move(std::clamp((vertical - horizontal) * currSpeedMult, -127.0, 127.0));
+    double leftV = (std::clamp((vertical + horizontal) * currSpeedMult, -127.0, 127.0));
+    double rightV = (std::clamp((vertical - horizontal) * currSpeedMult, -127.0, 127.0));
+
+    leftMG_.move(leftV);
+    rightMG_.move(rightV);
+    
+    return std::pair<double, double>{leftV, rightV};
 }
 
 void Chassis::tank(double leftV, double rightV)

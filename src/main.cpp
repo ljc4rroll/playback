@@ -1,9 +1,4 @@
 #include "main.h"
-#include "chassis.hpp"
-#include "transfer.hpp"
-#include "pneumatics.hpp"
-#include <vector>
-#include <cstring>
 
 pros::Controller master(pros::E_CONTROLLER_MASTER);
 pros::Imu inertial(11);
@@ -218,10 +213,10 @@ void opcontrol(std::vector<InputFrame> &buffer)
         // Handle chassis movement
         if (master.get_digital_new_press(DIGITAL_B))
             chassis.toggleSpeed();
-        double leftV = master.get_analog(ANALOG_LEFT_Y);
-        double rightV = master.get_analog(ANALOG_RIGHT_X);
+        double vertical = master.get_analog(ANALOG_LEFT_Y);
+        double horizontal = master.get_analog(ANALOG_RIGHT_X);
 
-        chassis.arcade(leftV, rightV);
+        std::pair<double, double> motorVs = chassis.arcade(vertical, horizontal);
 
         // Handle transfer system
         bool intakeIn = master.get_digital(DIGITAL_R1);
@@ -243,8 +238,8 @@ void opcontrol(std::vector<InputFrame> &buffer)
         std::pair<bool, bool> pistonsState = pneumatics.getPistonState();
 
         // Add inputs to buffer
-        buffer.push_back({(int16_t)leftV,
-                          (int16_t)rightV,
+        buffer.push_back({(int16_t)motorVs.first,
+                          (int16_t)motorVs.second,
                           (int16_t)intakeCMD,
                           (int16_t)outtakeCMDs.first,
                           (int16_t)outtakeCMDs.second,
@@ -298,6 +293,7 @@ void replay()
     pros::delay(1000);
 
     autonomous(frames);
+    disabled();
     pros::delay(10);
 
     master.clear();
