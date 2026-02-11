@@ -216,7 +216,7 @@ void opcontrol(std::vector<InputFrame> &buffer)
         double vertical = master.get_analog(ANALOG_LEFT_Y);
         double horizontal = master.get_analog(ANALOG_RIGHT_X);
 
-        std::pair<double, double> motorVs = chassis.arcade(vertical, horizontal);
+        std::pair<double, double> motorVs = chassis.arcadeReturn(vertical, horizontal);
 
         // Handle transfer system
         bool intakeIn = master.get_digital(DIGITAL_R1);

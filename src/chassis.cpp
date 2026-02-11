@@ -3,7 +3,13 @@
 Chassis::Chassis() : leftMG_({-10, -7, -1}),
                      rightMG_({20, 5, 14}) {}
 
-std::pair<double, double> Chassis::arcade(double vertical, double horizontal)
+void Chassis::arcade(double vertical, double horizontal)
+{
+    leftMG_.move(std::clamp((vertical + horizontal) * currSpeedMult, -127.0, 127.0));
+    rightMG_.move(std::clamp((vertical - horizontal) * currSpeedMult, -127.0, 127.0));
+}
+
+std::pair<double, double> Chassis::arcadeReturn(double vertical, double horizontal)
 {
     double leftV = (std::clamp((vertical + horizontal) * currSpeedMult, -127.0, 127.0));
     double rightV = (std::clamp((vertical - horizontal) * currSpeedMult, -127.0, 127.0));

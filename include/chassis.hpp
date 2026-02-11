@@ -6,7 +6,8 @@ class Chassis
 public:
     Chassis();
 
-    std::pair<double, double> arcade(double vertical, double horizontal);
+    void arcade(double vertical, double horizontal);
+    std::pair<double, double> arcadeReturn(double vertical, double horizontal);
     void tank(double left, double right);
 
     void toggleSpeed();
