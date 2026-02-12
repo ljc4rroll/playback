@@ -189,12 +189,14 @@ void autonomous(std::vector<InputFrame> &frames)
         if (master.get_digital(DIGITAL_DOWN))
             break;
 
+        // Handle PD
         double currentRotation = inertial.get_rotation();
         double rError = f.rotation - currentRotation;
         double rDerivative = rError - rPreviousError;
         double rotationCorrection = (rError * rKp) + (rDerivative * rKd);
         rPreviousError = rError;
 
+        // Apply values
         chassis.tank((f.leftV + rotationCorrection), (f.rightV - rotationCorrection));
         transfer.intake_.move(f.intakeCMD);
         transfer.outtakeB_.move(f.outtakeBCMD);
@@ -213,27 +215,19 @@ void opcontrol(std::vector<InputFrame> &buffer)
         // Handle chassis movement
         if (master.get_digital_new_press(DIGITAL_B))
             chassis.toggleSpeed();
-        double vertical = master.get_analog(ANALOG_LEFT_Y);
-        double horizontal = master.get_analog(ANALOG_RIGHT_X);
 
-        std::pair<double, double> motorVs = chassis.arcadeReturn(vertical, horizontal);
+        std::pair<double, double> motorVs = chassis.arcadeReturn(master.get_analog(ANALOG_LEFT_Y), master.get_analog(ANALOG_RIGHT_X));
 
         // Handle transfer system
-        bool intakeIn = master.get_digital(DIGITAL_R1);
         bool intakeOut = master.get_digital(DIGITAL_R2);
-        bool outtakeUp = master.get_digital(DIGITAL_L1);
-        bool outtakeDown = master.get_digital(DIGITAL_L2);
 
-        int_fast16_t intakeCMD = transfer.intakeReturn(intakeIn, intakeOut);
-        std::pair<int_fast16_t, int_fast16_t> outtakeCMDs = transfer.outtakeReturn(intakeOut, outtakeUp, outtakeDown);
+        int_fast16_t intakeCMD = transfer.intakeReturn(master.get_digital(DIGITAL_R1), intakeOut);
+        std::pair<int_fast16_t, int_fast16_t> outtakeCMDs = transfer.outtakeReturn(intakeOut, master.get_digital(DIGITAL_L1), master.get_digital(DIGITAL_L2));
 
         // Handle pneumatics
-        bool pistonDTriggered = master.get_digital_new_press(DIGITAL_A);
-        bool pistonATriggered = master.get_digital_new_press(DIGITAL_X);
-
-        if (pistonDTriggered)
+        if (master.get_digital_new_press(DIGITAL_A))
             pneumatics.togglePistonD();
-        if (pistonATriggered)
+        if (master.get_digital_new_press(DIGITAL_X))
             pneumatics.togglePistonA();
         std::pair<bool, bool> pistonsState = pneumatics.getPistonState();
 
