@@ -23,7 +23,7 @@ void Transfer::outtake(bool intakeOut, bool outtakeUp, bool outtakeDown)
         topSpeed = outtakeTSpeed;
     } else if (outtakeDown) {
         bottomSpeed = outtakeBDownSpeed;
-        topSpeed = -outtakeTSpeed;
+        topSpeed = outtakeTSpeed;
     }
     
     outtakeB_.move(bottomSpeed);
