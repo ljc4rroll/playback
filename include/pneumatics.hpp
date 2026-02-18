@@ -6,16 +6,14 @@ class Pneumatics
 public:
     Pneumatics();
 
-    void togglePistonD();
-    void togglePistonA();
+    void toggleDescore();
+    void toggleArm();
     std::pair<bool, bool> getPistonState();
     void resetPistons();
 
-    bool pistonDExtended = false;
-    bool pistonAExtended = false;
+    bool descoreExtended = false;
+    bool armExtended = false;
 
-    // Descore
-    pros::adi::DigitalOut pistonD_;
-    // Arm
-    pros::adi::DigitalOut pistonA_;
+    pros::adi::DigitalOut descore_;
+    pros::adi::DigitalOut arm_;
 };

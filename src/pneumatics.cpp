@@ -1,27 +1,27 @@
 #include "pneumatics.hpp"
 
-Pneumatics::Pneumatics() : pistonD_('D'),
-                           pistonA_('A') {}
+Pneumatics::Pneumatics() : descore_('A'),
+                           arm_('B') {}
 
-void Pneumatics::togglePistonD()
+void Pneumatics::toggleDescore()
 {
-    pistonDExtended = !pistonDExtended;
-    pistonD_.set_value(pistonDExtended);
+    descoreExtended = !descoreExtended;
+    descore_.set_value(descoreExtended);
 }
 
-void Pneumatics::togglePistonA()
+void Pneumatics::toggleArm()
 {
-    pistonAExtended = !pistonAExtended;
-    pistonA_.set_value(pistonAExtended);
+    armExtended = !armExtended;
+    arm_.set_value(armExtended);
 }
 
 std::pair<bool, bool> Pneumatics::getPistonState()
 {
-    return std::pair<bool, bool>(pistonDExtended, pistonAExtended);
+    return std::pair<bool, bool>(descoreExtended, armExtended);
 }
 
 void Pneumatics::resetPistons()
 {
-    pistonD_.set_value(0);
-    pistonA_.set_value(0);
+    descore_.set_value(0);
+    arm_.set_value(0);
 }
