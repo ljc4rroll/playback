@@ -43,8 +43,8 @@ struct InputFrame
     int16_t intakeCMD;
     int16_t outtakeBCMD;
     int16_t outtakeTCMD;
-    uint8_t pistonDCMD;
-    uint8_t pistonACMD;
+    uint8_t descoreCMD;
+    uint8_t armCMD;
     double rotation;
 };
 
@@ -201,8 +201,8 @@ void autonomous(std::vector<InputFrame> &frames)
         transfer.intake_.move(f.intakeCMD);
         transfer.outtakeB_.move(f.outtakeBCMD);
         transfer.outtakeT_.move(f.outtakeTCMD);
-        pneumatics.pistonD_.set_value(f.pistonDCMD);
-        pneumatics.pistonA_.set_value(f.pistonACMD);
+        pneumatics.descore_.set_value(f.descoreCMD);
+        pneumatics.arm_.set_value(f.armCMD);
 
         pros::delay(20);
     }
@@ -225,10 +225,10 @@ void opcontrol(std::vector<InputFrame> &buffer)
         std::pair<int_fast16_t, int_fast16_t> outtakeCMDs = transfer.outtakeReturn(intakeOut, master.get_digital(DIGITAL_L1), master.get_digital(DIGITAL_L2));
 
         // Handle pneumatics
-        if (master.get_digital_new_press(DIGITAL_A))
-            pneumatics.togglePistonD();
         if (master.get_digital_new_press(DIGITAL_X))
-            pneumatics.togglePistonA();
+            pneumatics.toggleDescore();
+        if (master.get_digital_new_press(DIGITAL_A))
+            pneumatics.toggleArm();
         std::pair<bool, bool> pistonsState = pneumatics.getPistonState();
 
         // Add inputs to buffer
