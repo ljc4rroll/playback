@@ -2,14 +2,17 @@
 
 pros::Controller master(pros::E_CONTROLLER_MASTER);
 pros::Imu inertial(11);
+pros::Rotation odomY(18);
 
 Chassis chassis;
 Transfer transfer;
 Pneumatics pneumatics;
 
 // Autonomous Settings
-const double rKp = 0.2;
-const double rKd = 0.3;
+const double yKp = (0.5) / 10000.0; // Leave the "/ 10000.0"
+const double yKd = (1.5) / 1000.0; // Leave the "/ 10000.0"
+const double rKp = 5.0;
+const double rKd = 2.0;
 
 std::vector<std::string> indexFiles(const char *path = "/")
 {
@@ -45,6 +48,7 @@ struct InputFrame
     int16_t outtakeTCMD;
     uint8_t descoreCMD;
     uint8_t armCMD;
+    int32_t odomYPosition;
     double rotation;
 };
 
@@ -143,6 +147,7 @@ void checkSave(FILE *file, const std::vector<InputFrame> &buffer)
             master.set_text(1, 0, "DO NOT KILL");
             pros::delay(50);
             fwrite(buffer.data(), sizeof(InputFrame), buffer.size(), file);
+            pros::delay(1000);
             fclose(file);
             pros::delay(50);
             return;
@@ -175,6 +180,7 @@ void reInitialize()
     transfer.setBrakeMode(pros::E_MOTOR_BRAKE_HOLD);
 
     inertial.reset(true);
+    odomY.reset();
 
     pneumatics.resetPistons();
     pros::delay(20);
@@ -183,13 +189,21 @@ void reInitialize()
 void autonomous(std::vector<InputFrame> &frames)
 {
     double rPreviousError = 0.0;
+    double yPreviousError = 0.0;
 
     for (const auto &f : frames)
     {
         if (master.get_digital(DIGITAL_DOWN))
             break;
+        
+        // Handle OdomY PD
+        double odomYCurrentPosition = odomY.get_position();
+        double yError = f.odomYPosition - odomYCurrentPosition;
+        double yDerivative = yError - yPreviousError;
+        double yPositionCorrection = (yError * yKp) + (yDerivative * yKd);
+        yPreviousError = yError;
 
-        // Handle PD
+        // Handle Rotation PD
         double currentRotation = inertial.get_rotation();
         double rError = f.rotation - currentRotation;
         double rDerivative = rError - rPreviousError;
@@ -197,7 +211,7 @@ void autonomous(std::vector<InputFrame> &frames)
         rPreviousError = rError;
 
         // Apply values
-        chassis.tank((f.leftV + rotationCorrection), (f.rightV - rotationCorrection));
+        chassis.tank((f.leftV + yPositionCorrection + rotationCorrection), (f.rightV + yPositionCorrection - rotationCorrection));
         transfer.intake_.move(f.intakeCMD);
         transfer.outtakeB_.move(f.outtakeBCMD);
         transfer.outtakeT_.move(f.outtakeTCMD);
@@ -239,6 +253,7 @@ void opcontrol(std::vector<InputFrame> &buffer)
                           (int16_t)outtakeCMDs.second,
                           (uint8_t)pistonsState.first,
                           (uint8_t)pistonsState.second,
+                          (int32_t)odomY.get_position(),
                           (double_t)inertial.get_rotation()});
 
         pros::delay(20);
