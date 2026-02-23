@@ -148,8 +148,6 @@ void checkSave(FILE *file, const std::vector<InputFrame> &buffer)
             pros::delay(50);
             fwrite(buffer.data(), sizeof(InputFrame), buffer.size(), file);
             pros::delay(1000);
-            fclose(file);
-            pros::delay(50);
             return;
         }
         if (bPressed)
@@ -334,7 +332,7 @@ void overwrite()
 
     // Sets the amount of input frames that can be recorded.
     // Calculate by multiplying the amount of seconds by the total delay of the driver control loop.
-    constexpr size_t frameMax = 6000;
+    constexpr size_t frameMax = 10000;
     std::vector<InputFrame> buffer;
     buffer.reserve(frameMax);
 
@@ -350,6 +348,7 @@ void overwrite()
 
     // Cleanup
     checkSave(fileW, buffer);
+    fclose(fileW);
     buffer.clear();
     pros::delay(10);
 
@@ -401,7 +400,7 @@ void extend()
 
     // Sets the amount of input frames that can be recorded.
     // Calculate by multiplying amount of seconds by the total delay of the driver control loop.
-    constexpr size_t frameMax = 6000;
+    constexpr size_t frameMax = 10000;
     std::vector<InputFrame> buffer;
     buffer.reserve(frameMax);
 
@@ -419,6 +418,8 @@ void extend()
     checkSave(fileA, buffer);
 
     // Cleanup
+    fclose(fileR);
+    fclose(fileA);
     buffer.clear();
     pros::delay(10);
 
