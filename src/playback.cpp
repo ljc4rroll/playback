@@ -215,8 +215,8 @@ void autonomous(std::vector<InputFrame> &frames)
         transfer.intake_.move(f.intakeCMD);
         transfer.outtakeB_.move(f.outtakeBCMD);
         transfer.outtakeT_.move(f.outtakeTCMD);
-        pneumatics.descore_.set_value(f.descoreCMD);
-        pneumatics.arm_.set_value(f.armCMD);
+        pneumatics.setDescore(f.descoreCMD);
+        pneumatics.setArm(f.armCMD);
 
         pros::delay(20);
     }

@@ -17,7 +17,5 @@ public:
     bool armExtended = false;
 
     pros::adi::DigitalOut descore_;
-    pros::adi::DigitalIn descoreIn_;
     pros::adi::DigitalOut arm_;
-    pros::adi::DigitalIn armIn_;
 };

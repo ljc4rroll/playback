@@ -1,9 +1,7 @@
 #include "pneumatics.hpp"
 
 Pneumatics::Pneumatics() : descore_('A'),
-                           descoreIn_('A'),
-                           arm_('B'),
-                           armIn_('B') {}
+                           arm_('B') {}
 
 void Pneumatics::toggleDescore()
 {
@@ -34,6 +32,8 @@ std::pair<bool, bool> Pneumatics::getPistonState()
 
 void Pneumatics::resetPistons()
 {
+    descoreExtended = false;
+    armExtended = false;
     descore_.set_value(0);
     arm_.set_value(0);
 }
