@@ -510,6 +510,7 @@ void playback()
         }
         pros::delay(30);
     }
+    reInitialize();
     pros::delay(10);
 }
 

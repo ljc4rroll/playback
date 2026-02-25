@@ -11,6 +11,7 @@ void Pneumatics::toggleDescore()
 
 void Pneumatics::setDescore(int8_t descoreState)
 {
+    descoreExtended = descoreState;
     descore_.set_value(descoreState);
 }
 
@@ -22,6 +23,7 @@ void Pneumatics::toggleArm()
 
 void Pneumatics::setArm(int8_t armState)
 {
+    armExtended = armState;
     arm_.set_value(armState);
 }
 
