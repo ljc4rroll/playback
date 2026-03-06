@@ -1,9 +1,7 @@
 #include "pneumatics.hpp"
 
 Pneumatics::Pneumatics() : descore_('A'),
-                           descoreIn_('A'),
-                           arm_('B'),
-                           armIn_('B') {}
+                           arm_('B') {}
 
 void Pneumatics::toggleDescore()
 {
