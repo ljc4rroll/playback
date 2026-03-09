@@ -234,7 +234,7 @@ void Control::recordManual(const XUtil::CSettings cSettings, std::vector<XUtil::
 			(int16_t)outtakeCMDs.second,
 			(uint8_t)pistonsState.first,
 			(uint8_t)pistonsState.second,
-			(uint8_t){0}
+			{}
 		});
 
 		pros::delay(cSettings.delayInterval);

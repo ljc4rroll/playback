@@ -46,7 +46,7 @@ public:
         uint8_t cPadding[3];
         uint32_t delayInterval;
         uint8_t cExpansion[24]; // For future expansion
-    };
+    } __attribute__((packed));
 
     CSettings cSettings{1, {0}, 20, {0}};
 
@@ -63,7 +63,7 @@ public:
         uint8_t pPadding[3];
         uint32_t delayInterval;
         uint8_t pExpansion[24]; // For future expansion
-    };
+    } __attribute__((packed));
 
     PSettings pSettings;
 
