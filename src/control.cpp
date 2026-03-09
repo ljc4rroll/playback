@@ -172,7 +172,7 @@ void Control::compManual()
 	}
 }
 
-void Control::telemetryManual() // WIP
+void Control::telemetryManual()
 {
 	while (!xUtil.master.get_digital(pros::E_CONTROLLER_DIGITAL_DOWN))
 	{
@@ -289,22 +289,31 @@ void Control::compAuton(std::vector<XUtil::PFrame> &frames) // WIP
 {
 	double yPreviousError = 0.0;
 	double rPreviousError = 0.0;
+	double yOffset = 0.0;
+	double rOffset = 0.0;
 
 	for (const auto &f : frames)
 	{
-		if (pros::competition::is_disabled())
+		if (xUtil.master.get_digital(pros::E_CONTROLLER_DIGITAL_DOWN))
 			break;
 
-		// Handle OdomY PD
 		double odomYCurrentPosition = odomY.get_position();
-		double yError = f.odomY - odomYCurrentPosition;
+		double currentRotation = inertial.get_rotation();
+
+		if (f.tareFlag)
+		{
+			yOffset = odomYCurrentPosition - f.odomY;
+			rOffset = currentRotation - f.rotation;
+		}
+
+		// Handle OdomY PD
+		double yError = f.odomY - (odomYCurrentPosition - yOffset);
 		double yDerivative = yError - yPreviousError;
 		double yPositionCorrection = (yError * yKp) + (yDerivative * yKd);
 		yPreviousError = yError;
 
 		// Handle Rotation PD
-		double currentRotation = inertial.get_rotation();
-		double rError = f.rotation - currentRotation;
+		double rError = f.rotation - (currentRotation - rOffset);
 		double rDerivative = rError - rPreviousError;
 		double rotationCorrection = (rError * rKp) + (rDerivative * rKd);
 		rPreviousError = rError;
@@ -325,22 +334,31 @@ void Control::telemetryAuton(std::vector<XUtil::PFrame> &frames) // WIP
 {
 	double yPreviousError = 0.0;
 	double rPreviousError = 0.0;
+	double yOffset = 0.0;
+	double rOffset = 0.0;
 
 	for (const auto &f : frames)
 	{
 		if (xUtil.master.get_digital(pros::E_CONTROLLER_DIGITAL_DOWN))
 			break;
 
-		// Handle OdomY PD
 		double odomYCurrentPosition = odomY.get_position();
-		double yError = f.odomY - odomYCurrentPosition;
+		double currentRotation = inertial.get_rotation();
+
+		if (f.tareFlag)
+		{
+			yOffset = odomYCurrentPosition - f.odomY;
+			rOffset = currentRotation - f.rotation;
+		}
+
+		// Handle OdomY PD
+		double yError = f.odomY - (odomYCurrentPosition - yOffset);
 		double yDerivative = yError - yPreviousError;
 		double yPositionCorrection = (yError * yKp) + (yDerivative * yKd);
 		yPreviousError = yError;
 
 		// Handle Rotation PD
-		double currentRotation = inertial.get_rotation();
-		double rError = f.rotation - currentRotation;
+		double rError = f.rotation - (currentRotation - rOffset);
 		double rDerivative = rError - rPreviousError;
 		double rotationCorrection = (rError * rKp) + (rDerivative * rKd);
 		rPreviousError = rError;
