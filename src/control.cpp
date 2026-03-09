@@ -233,6 +233,7 @@ void Control::recordManual(std::vector<XUtil::PFrame> &buffer)
 						  (int16_t)outtakeCMDs.second,
 						  (uint8_t)pistonsState.first,
 						  (uint8_t)pistonsState.second,
+						  (uint8_t)xUtil.partner.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_A),
 						  {}});
 
 		pros::delay(xUtil.pcSettings.delayInterval);
@@ -243,22 +244,31 @@ void Control::auton(std::vector<XUtil::PFrame> &frames) // WIP
 {
 	double yPreviousError = 0.0;
 	double rPreviousError = 0.0;
+	double yOffset = 0.0;
+	double rOffset = 0.0;
 
 	for (const auto &f : frames)
 	{
 		if (xUtil.master.get_digital(pros::E_CONTROLLER_DIGITAL_DOWN))
 			break;
 
-		// Handle OdomY PD
 		double odomYCurrentPosition = odomY.get_position();
-		double yError = f.odomY - odomYCurrentPosition;
+		double currentRotation = inertial.get_rotation();
+
+		if (f.tareFlag)
+		{
+			yOffset = odomYCurrentPosition - f.odomY;
+			rOffset = currentRotation - f.rotation;
+		}
+
+		// Handle OdomY PD
+		double yError = f.odomY - (odomYCurrentPosition - yOffset);
 		double yDerivative = yError - yPreviousError;
 		double yPositionCorrection = (yError * yKp) + (yDerivative * yKd);
 		yPreviousError = yError;
 
 		// Handle Rotation PD
-		double currentRotation = inertial.get_rotation();
-		double rError = f.rotation - currentRotation;
+		double rError = f.rotation - (currentRotation - rOffset);
 		double rDerivative = rError - rPreviousError;
 		double rotationCorrection = (rError * rKp) + (rDerivative * rKd);
 		rPreviousError = rError;
@@ -311,7 +321,7 @@ void Control::compAuton(std::vector<XUtil::PFrame> &frames) // WIP
 	}
 }
 
-void Control::telemetryAuton(XUtil::PSettings pSettings, std::vector<XUtil::PFrame> &frames) // WIP
+void Control::telemetryAuton(std::vector<XUtil::PFrame> &frames) // WIP
 {
 	double yPreviousError = 0.0;
 	double rPreviousError = 0.0;
@@ -346,6 +356,6 @@ void Control::telemetryAuton(XUtil::PSettings pSettings, std::vector<XUtil::PFra
 		pros::lcd::print(0, "Odom: %f", yPositionCorrection);
 		pros::lcd::print(1, "Inertial: %f", rotationCorrection);
 
-		pros::delay(pSettings.delayInterval);
+		pros::delay(xUtil.pSettings.delayInterval);
 	}
 }

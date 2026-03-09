@@ -1,6 +1,7 @@
 #include "Xutil.hpp"
 
-XUtil::XUtil() : master(pros::E_CONTROLLER_MASTER) {}
+XUtil::XUtil() : master(pros::E_CONTROLLER_MASTER),
+                 partner(pros::E_CONTROLLER_PARTNER) {}
 
 std::vector<std::string> XUtil::indexFiles(const char *path = "/")
 {
@@ -171,7 +172,7 @@ bool XUtil::checkFile(FILE *file)
         return false;
     }
     /*
-    
+
     size_t fileSize = ftell(file);
     if (fileSize < sizeof(XUtil::PSettings))
     {
@@ -208,13 +209,13 @@ void XUtil::parseFile(FILE *file)
 {
     fseek(file, 0, SEEK_SET);
     readHeader(file);
-    
+
     fseek(file, 0, SEEK_END);
     size_t fileSize = ftell(file);
     fseek(file, sizeof(XUtil::PSettings), SEEK_SET);
-    
+
     size_t frameCount = (fileSize - sizeof(XUtil::PSettings)) / sizeof(XUtil::PFrame);
-    
+
     frames.resize(frameCount);
     fread(frames.data(), sizeof(XUtil::PFrame), frameCount, file);
 }
@@ -231,32 +232,32 @@ void XUtil::readHeader(FILE *file)
 
 void XUtil::handleError(ErrorCode error)
 {
-    switch(error)
+    switch (error)
     {
-        case ErrorCode::batteryLow:
-            master.clear();
-            master.set_text(0, 0, "LOW BATTERY");
-            master.rumble(".");
-            break;
-        case ErrorCode::sdCardMissing:
-            master.clear();
-            master.set_text(0, 0, "NO SD CARD");
-            master.rumble(".");
-            break;
-        case ErrorCode::IMUCalibrationFailed:
-            master.clear();
-            master.set_text(0, 0, "IMU FAIL");
-            master.rumble(".");
-            break;
-        case ErrorCode::motorOverheat:
-            master.set_text(0, 0, "OVERHEATED MOTOR");
-            master.rumble(".");    
-            break;
-        default:
-            master.clear();
-            master.set_text(0, 0, "UNKNOWN ERROR");
-            master.rumble(".");    
-            break;
+    case ErrorCode::batteryLow:
+        master.clear();
+        master.set_text(0, 0, "LOW BATTERY");
+        master.rumble(".");
+        break;
+    case ErrorCode::sdCardMissing:
+        master.clear();
+        master.set_text(0, 0, "NO SD CARD");
+        master.rumble(".");
+        break;
+    case ErrorCode::IMUCalibrationFailed:
+        master.clear();
+        master.set_text(0, 0, "IMU FAIL");
+        master.rumble(".");
+        break;
+    case ErrorCode::motorOverheat:
+        master.set_text(0, 0, "OVERHEATED MOTOR");
+        master.rumble(".");
+        break;
+    default:
+        master.clear();
+        master.set_text(0, 0, "UNKNOWN ERROR");
+        master.rumble(".");
+        break;
         pros::delay(5000);
         exit(static_cast<int>(error));
     }
