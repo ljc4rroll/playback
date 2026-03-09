@@ -103,6 +103,7 @@ void Playback::replay()
     pros::delay(10);
 	
 	control.reInitialize();
+    control.setDataRates(true);
 	
     xUtil.master.clear();
 	pros::delay(50);
@@ -112,8 +113,10 @@ void Playback::replay()
     xUtil.master.rumble(".");
 	pros::delay(1000);
 
-    control.setDataRates(true);
-    control.auton(xUtil.pSettings, xUtil.frames);
+	xUtil.master.print(0, 0, "Delay: %d", xUtil.pSettings.delayInterval);
+	pros::delay(2000);
+
+    control.telemetryAuton(xUtil.pSettings, xUtil.frames);
     control.disabled();
 
     xUtil.frames.clear();
@@ -144,12 +147,11 @@ void Playback::overwrite()
 	pros::delay(1000);
 
     control.setDataRates(false);
-    control.recordManual(xUtil.cSettings, buffer);
+    control.recordManual(buffer);
     control.disabled();
 
     xUtil.checkSave(file, buffer);
 
-    fclose(file);
     buffer.clear();
     pros::delay(10);
 }
@@ -180,9 +182,9 @@ void Playback::extend()
 	pros::delay(1000);
 
     control.setDataRates(false);
-    control.auton(xUtil.pSettings, xUtil.frames);
+    control.auton(xUtil.frames);
     control.setDataRates(true);
-    control.recordManual(xUtil.cSettings, buffer);
+    control.recordManual(buffer);
     control.disabled();
 
     xUtil.checkSave(file, buffer);

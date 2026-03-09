@@ -113,14 +113,18 @@ void XUtil::checkSave(FILE *file, std::vector<XUtil::PFrame> &buffer)
             pros::delay(50);
             master.set_text(1, 0, "DO NOT KILL");
             pros::delay(50);
+
+            writeHeader(file);
             fwrite(buffer.data(), sizeof(XUtil::PFrame), buffer.size(), file);
             pros::delay(1000);
+
             fclose(file);
             pros::delay(50);
             return;
         }
         if (bPressed)
         {
+            fclose(file);
             pros::delay(20);
             return;
         }
@@ -202,28 +206,27 @@ bool XUtil::checkFile(FILE *file)
 
 void XUtil::parseFile(FILE *file)
 {
-    pSettings = readHeader(file);
-
+    fseek(file, 0, SEEK_SET);
+    readHeader(file);
+    
     fseek(file, 0, SEEK_END);
     size_t fileSize = ftell(file);
     fseek(file, sizeof(XUtil::PSettings), SEEK_SET);
-
+    
     size_t frameCount = (fileSize - sizeof(XUtil::PSettings)) / sizeof(XUtil::PFrame);
-
+    
     frames.resize(frameCount);
     fread(frames.data(), sizeof(XUtil::PFrame), frameCount, file);
 }
 
-void XUtil::writeHeader(FILE *file, const XUtil::PSettings &settings)
+void XUtil::writeHeader(FILE *file)
 {
-    fwrite(&settings, sizeof(XUtil::PSettings), 1, file);
+    fwrite(&pcSettings, sizeof(pcSettings), 1, file);
 }
 
-XUtil::PSettings XUtil::readHeader(FILE *file)
+void XUtil::readHeader(FILE *file)
 {
-    XUtil::PSettings settings;
-    fread(&settings, sizeof(XUtil::PSettings), 1, file);
-    return settings;
+    fread(&pSettings, sizeof(pSettings), 1, file);
 }
 
 void XUtil::handleError(ErrorCode error)

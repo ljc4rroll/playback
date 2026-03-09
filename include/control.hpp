@@ -31,12 +31,12 @@ public:
     void checkMotorTemps();
     void setDataRates(bool autonomous); // If autonomous, uses pSettings. If opcontrol, uses cSettings.
 
-    void manual(const XUtil::CSettings);
-    void compManual(const XUtil::CSettings);
-    void telemetryManual(const XUtil::CSettings);
-    void recordManual(const XUtil::CSettings, std::vector<XUtil::PFrame> &buffer);
+    void manual();
+    void compManual();
+    void telemetryManual();
+    void recordManual(std::vector<XUtil::PFrame> &buffer);
 
-    void auton(const XUtil::PSettings PSettings, std::vector<XUtil::PFrame> &frames);
-    void compAuton(const XUtil::PSettings PSettings, std::vector<XUtil::PFrame> &frames);
-    void telemetryAuton(const XUtil::PSettings PSettings, std::vector<XUtil::PFrame> &frames);
+    void auton(std::vector<XUtil::PFrame> &frames);
+    void compAuton(std::vector<XUtil::PFrame> &frames);
+    void telemetryAuton(XUtil::PSettings pSettings, std::vector<XUtil::PFrame> &frames);
 };

@@ -123,7 +123,7 @@ void Control::setDataRates(bool autonomous)
 	}
 }
 
-void Control::manual(const XUtil::CSettings cSettings)
+void Control::manual()
 {
 	while (!xUtil.master.get_digital(pros::E_CONTROLLER_DIGITAL_DOWN))
 	{
@@ -144,11 +144,11 @@ void Control::manual(const XUtil::CSettings cSettings)
 		if (xUtil.master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_A))
 			pneumatics.toggleArm();
 
-		pros::delay(cSettings.delayInterval);
+		pros::delay(xUtil.cSettings.delayInterval);
 	}
 }
 
-void Control::compManual(const XUtil::CSettings cSettings)
+void Control::compManual()
 {
 	while (!pros::competition::is_disabled)
 	{
@@ -168,11 +168,11 @@ void Control::compManual(const XUtil::CSettings cSettings)
 			pneumatics.toggleDescore();
 		if (xUtil.master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_A))
 			pneumatics.toggleArm();
-		pros::delay(cSettings.delayInterval);
+		pros::delay(xUtil.cSettings.delayInterval);
 	}
 }
 
-void Control::telemetryManual(const XUtil::CSettings cSettings) // WIP
+void Control::telemetryManual() // WIP
 {
 	while (!xUtil.master.get_digital(pros::E_CONTROLLER_DIGITAL_DOWN))
 	{
@@ -196,11 +196,11 @@ void Control::telemetryManual(const XUtil::CSettings cSettings) // WIP
 		pros::lcd::print(0, "Odom: %f", odomY.get_position());
 		pros::lcd::print(1, "Inertial: %f", inertial.get_rotation());
 
-		pros::delay(cSettings.delayInterval);
+		pros::delay(xUtil.cSettings.delayInterval);
 	}
 }
 
-void Control::recordManual(const XUtil::CSettings cSettings, std::vector<XUtil::PFrame> &buffer)
+void Control::recordManual(std::vector<XUtil::PFrame> &buffer)
 {
 	while (!xUtil.master.get_digital(pros::E_CONTROLLER_DIGITAL_DOWN))
 	{
@@ -224,24 +224,22 @@ void Control::recordManual(const XUtil::CSettings cSettings, std::vector<XUtil::
 		std::pair<bool, bool> pistonsState = pneumatics.getPistonState();
 
 		// Add inputs to buffer
-		buffer.push_back({
-			(double_t)inertial.get_rotation(),
-			(int32_t)odomY.get_position(),
-			(int16_t)motorVs.first,
-			(int16_t)motorVs.second,
-			(int16_t)intakeCMD,
-			(int16_t)outtakeCMDs.first,
-			(int16_t)outtakeCMDs.second,
-			(uint8_t)pistonsState.first,
-			(uint8_t)pistonsState.second,
-			{}
-		});
+		buffer.push_back({(double_t)inertial.get_rotation(),
+						  (int32_t)odomY.get_position(),
+						  (int16_t)motorVs.first,
+						  (int16_t)motorVs.second,
+						  (int16_t)intakeCMD,
+						  (int16_t)outtakeCMDs.first,
+						  (int16_t)outtakeCMDs.second,
+						  (uint8_t)pistonsState.first,
+						  (uint8_t)pistonsState.second,
+						  {}});
 
-		pros::delay(cSettings.delayInterval);
+		pros::delay(xUtil.pcSettings.delayInterval);
 	}
 }
 
-void Control::auton(const XUtil::PSettings pSettings, std::vector<XUtil::PFrame> &frames) // WIP
+void Control::auton(std::vector<XUtil::PFrame> &frames) // WIP
 {
 	double yPreviousError = 0.0;
 	double rPreviousError = 0.0;
@@ -273,11 +271,11 @@ void Control::auton(const XUtil::PSettings pSettings, std::vector<XUtil::PFrame>
 		pneumatics.descore_.set_value(f.descoreCMD);
 		pneumatics.arm_.set_value(f.armCMD);
 
-		pros::delay(pSettings.delayInterval);
+		pros::delay(xUtil.pSettings.delayInterval);
 	}
 }
 
-void Control::compAuton(const XUtil::PSettings pSettings, std::vector<XUtil::PFrame> &frames) // WIP
+void Control::compAuton(std::vector<XUtil::PFrame> &frames) // WIP
 {
 	double yPreviousError = 0.0;
 	double rPreviousError = 0.0;
@@ -309,11 +307,11 @@ void Control::compAuton(const XUtil::PSettings pSettings, std::vector<XUtil::PFr
 		pneumatics.descore_.set_value(f.descoreCMD);
 		pneumatics.arm_.set_value(f.armCMD);
 
-		pros::delay(pSettings.delayInterval);
+		pros::delay(xUtil.pSettings.delayInterval);
 	}
 }
 
-void Control::telemetryAuton(const XUtil::PSettings pSettings, std::vector<XUtil::PFrame> &frames) // WIP
+void Control::telemetryAuton(XUtil::PSettings pSettings, std::vector<XUtil::PFrame> &frames) // WIP
 {
 	double yPreviousError = 0.0;
 	double rPreviousError = 0.0;

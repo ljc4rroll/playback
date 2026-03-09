@@ -6,6 +6,7 @@
 #include <vector>
 #include "pros/rtos.hpp"
 #include "pros/misc.hpp"
+#include "pros/misc.h"
 
 /*
 success = 0,
@@ -28,7 +29,7 @@ class XUtil
 public:
     XUtil();
 
-    pros::Controller master;
+    pros::Controller master ();
 
     // Editable
     static const size_t frameMax = 10000;
@@ -48,7 +49,7 @@ public:
         uint8_t cExpansion[24]; // For future expansion
     } __attribute__((packed));
 
-    CSettings cSettings{1, {0}, 20, {0}};
+    CSettings cSettings{1, {0}, 20, {0}}; // Manual Control Settings
 
     /*
     32 Byte Total
@@ -65,7 +66,8 @@ public:
         uint8_t pExpansion[24]; // For future expansion
     } __attribute__((packed));
 
-    PSettings pSettings;
+    PSettings pcSettings{1, {0}, 20, {0}}; // Playback Control settings
+    PSettings pSettings;                   // Playback Replay Settings
 
     /*
     32 Byte Total
@@ -73,12 +75,13 @@ public:
     int32 odomY
     int16 leftV
     int16 rightV
-    int16 intake
-    int16 outtakeB
-    int16 outtakeT
-    int8 descore
-    int8 arm
-    int8 8 Byte Expansion
+    int16 intakeCMD
+    int16 outtakeBCMD
+    int16 outtakeTCMD
+    int8 descoreCMD
+    int8 armCMD
+    int8 tareFlag
+    int8 fExpansion [7]
     */
     struct PFrame
     {
@@ -91,7 +94,8 @@ public:
         int16_t outtakeTCMD;
         uint8_t descoreCMD;
         uint8_t armCMD;
-        uint8_t fExpansion[8]; // Space for 8 Flags
+        uint8_t tareFlag;
+        uint8_t fExpansion[7];
     } __attribute__((packed));
 
     std::vector<PFrame> frames;
@@ -106,8 +110,8 @@ public:
     bool checkFile(FILE *file);
     void parseFile(FILE *file);
 
-    void writeHeader(FILE *file, const XUtil::PSettings &settings);
-    XUtil::PSettings readHeader(FILE *file);
+    void writeHeader(FILE *file);
+    void readHeader(FILE *file);
 
     void handleError(ErrorCode error);
 };
