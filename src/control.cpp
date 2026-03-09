@@ -263,6 +263,8 @@ void Control::auton(XUtil::PSettings pSettings, std::vector<XUtil::PFrame> &fram
 		{
 			yOffset = odomYCurrentPosition - f.odomY;
 			rOffset = currentRotation - f.rotation;
+			yPreviousError = 0.0;
+			rPreviousError = 0.0;
 		}
 
 		// Handle OdomY PD
@@ -308,6 +310,8 @@ void Control::compAuton(XUtil::PSettings pSettings, std::vector<XUtil::PFrame> &
 		{
 			yOffset = odomYCurrentPosition - f.odomY;
 			rOffset = currentRotation - f.rotation;
+			yPreviousError = 0.0;
+			rPreviousError = 0.0;
 		}
 
 		// Handle OdomY PD
@@ -353,6 +357,8 @@ void Control::telemetryAuton(XUtil::PSettings pSettings, std::vector<XUtil::PFra
 		{
 			yOffset = odomYCurrentPosition - f.odomY;
 			rOffset = currentRotation - f.rotation;
+			yPreviousError = 0.0;
+			rPreviousError = 0.0;
 		}
 
 		// Handle OdomY PD
