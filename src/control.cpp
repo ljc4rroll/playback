@@ -23,6 +23,7 @@ void Control::reInitialize()
 		xUtil.handleError(ErrorCode::IMUCalibrationFailed);
 	}
 	odomY.reset_position();
+	odomY.set_reversed(true);
 	pneumatics.resetPistons();
 
 	pros::lcd::initialize();
@@ -223,6 +224,9 @@ void Control::recordManual(std::vector<XUtil::PFrame> &buffer)
 			pneumatics.toggleArm();
 		std::pair<bool, bool> pistonsState = pneumatics.getPistonState();
 
+		// Handle flags
+		bool tareFlag = xUtil.partner.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_A);
+
 		// Add inputs to buffer
 		buffer.push_back({(double_t)inertial.get_rotation(),
 						  (int32_t)odomY.get_position(),
@@ -233,14 +237,14 @@ void Control::recordManual(std::vector<XUtil::PFrame> &buffer)
 						  (int16_t)outtakeCMDs.second,
 						  (uint8_t)pistonsState.first,
 						  (uint8_t)pistonsState.second,
-						  (uint8_t)xUtil.partner.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_A),
+						  (uint8_t)tareFlag,
 						  {}});
 
 		pros::delay(xUtil.pcSettings.delayInterval);
 	}
 }
 
-void Control::auton(std::vector<XUtil::PFrame> &frames) // WIP
+void Control::auton(XUtil::PSettings pSettings, std::vector<XUtil::PFrame> &frames) // WIP
 {
 	double yPreviousError = 0.0;
 	double rPreviousError = 0.0;
@@ -281,11 +285,11 @@ void Control::auton(std::vector<XUtil::PFrame> &frames) // WIP
 		pneumatics.descore_.set_value(f.descoreCMD);
 		pneumatics.arm_.set_value(f.armCMD);
 
-		pros::delay(xUtil.pSettings.delayInterval);
+		pros::delay(pSettings.delayInterval);
 	}
 }
 
-void Control::compAuton(std::vector<XUtil::PFrame> &frames) // WIP
+void Control::compAuton(XUtil::PSettings pSettings, std::vector<XUtil::PFrame> &frames) // WIP
 {
 	double yPreviousError = 0.0;
 	double rPreviousError = 0.0;
@@ -326,11 +330,11 @@ void Control::compAuton(std::vector<XUtil::PFrame> &frames) // WIP
 		pneumatics.descore_.set_value(f.descoreCMD);
 		pneumatics.arm_.set_value(f.armCMD);
 
-		pros::delay(xUtil.pSettings.delayInterval);
+		pros::delay(pSettings.delayInterval);
 	}
 }
 
-void Control::telemetryAuton(std::vector<XUtil::PFrame> &frames) // WIP
+void Control::telemetryAuton(XUtil::PSettings pSettings, std::vector<XUtil::PFrame> &frames) // WIP
 {
 	double yPreviousError = 0.0;
 	double rPreviousError = 0.0;
@@ -371,9 +375,10 @@ void Control::telemetryAuton(std::vector<XUtil::PFrame> &frames) // WIP
 		pneumatics.descore_.set_value(f.descoreCMD);
 		pneumatics.arm_.set_value(f.armCMD);
 
-		pros::lcd::print(0, "Odom: %f", yPositionCorrection);
-		pros::lcd::print(1, "Inertial: %f", rotationCorrection);
+		pros::lcd::print(0, "Odom: %f", odomYCurrentPosition);
+		pros::lcd::print(1, "Inertial: %f", currentRotation);
+		pros::lcd::print(2, "Tare: %i", f.tareFlag);
 
-		pros::delay(xUtil.pSettings.delayInterval);
+		pros::delay(pSettings.delayInterval);
 	}
 }

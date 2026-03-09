@@ -67,7 +67,7 @@ public:
         uint8_t pExpansion[24]; // For future expansion
     } __attribute__((packed));
 
-    PSettings pcSettings{1, {0}, 20, {0}}; // Playback Control settings
+    PSettings pcSettings{1, {0}, 40, {0}}; // Playback Control settings
     PSettings pSettings;                   // Playback Replay Settings
 
     /*

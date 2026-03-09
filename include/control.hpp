@@ -36,7 +36,7 @@ public:
     void telemetryManual();
     void recordManual(std::vector<XUtil::PFrame> &buffer);
 
-    void auton(std::vector<XUtil::PFrame> &frames);
-    void compAuton(std::vector<XUtil::PFrame> &frames);
-    void telemetryAuton(std::vector<XUtil::PFrame> &frames);
+    void auton(XUtil::PSettings pSettings, std::vector<XUtil::PFrame> &frames);
+    void compAuton(XUtil::PSettings pSettings, std::vector<XUtil::PFrame> &frames);
+    void telemetryAuton(XUtil::PSettings pSettings, std::vector<XUtil::PFrame> &frames);
 };

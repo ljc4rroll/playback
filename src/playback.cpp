@@ -110,13 +110,13 @@ void Playback::replay()
 	xUtil.master.set_text(0, 0, (xUtil.selectedFile).c_str());
 	pros::delay(50);
 	xUtil.master.set_text(1, 0, "REPLAY");
+	pros::delay(50);
+	xUtil.master.print(2, 0, "DELAY: %d", xUtil.pSettings.delayInterval);
+	pros::delay(50);
 	xUtil.master.rumble("-");
 	pros::delay(1000);
-
-	xUtil.master.print(0, 0, "Delay: %d", xUtil.pSettings.delayInterval);
-	pros::delay(2000);
-
-	control.telemetryAuton(xUtil.frames);
+	
+	control.telemetryAuton(xUtil.pSettings, xUtil.frames);
 	control.disabled();
 
 	xUtil.frames.clear();
@@ -143,6 +143,7 @@ void Playback::overwrite()
 	xUtil.master.set_text(0, 0, (xUtil.selectedFile).c_str());
 	pros::delay(50);
 	xUtil.master.set_text(1, 0, "OVERWRITE");
+	pros::delay(50);
 	xUtil.master.rumble("-");
 	pros::delay(1000);
 
@@ -178,11 +179,12 @@ void Playback::extend()
 	xUtil.master.set_text(0, 0, (xUtil.selectedFile).c_str());
 	pros::delay(50);
 	xUtil.master.set_text(1, 0, "EXTEND");
+	pros::delay(50);
 	xUtil.master.rumble("-");
 	pros::delay(1000);
 
 	control.setDataRates(false);
-	control.auton(xUtil.frames);
+	control.auton(xUtil.pSettings, xUtil.frames);
 	control.setDataRates(true);
 	control.recordManual(buffer);
 	control.disabled();
