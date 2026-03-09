@@ -14,7 +14,8 @@ sdCardMissing = 2,
 IMUCalibrationFailed = 3,
 motorOverheat = 4
 */
-enum class ErrorCode {
+enum class ErrorCode
+{
     success = 0,
     batteryLow = 1,
     sdCardMissing = 2,
@@ -47,7 +48,7 @@ public:
         uint8_t cExpansion[24]; // For future expansion
     };
 
-    CSettings cSettings{1, {0}, 50, {0}};
+    CSettings cSettings{1, {0}, 20, {0}};
 
     /*
     32 Byte Total
@@ -67,19 +68,22 @@ public:
     PSettings pSettings;
 
     /*
-    24 Byte Total, 28 bytes in RAM
+    32 Byte Total
+    double rotation
+    int32 odomY
     int16 leftV
-    int16 rightv
+    int16 rightV
     int16 intake
     int16 outtakeB
     int16 outtakeT
     int8 descore
     int8 arm
-    int32 odomY
-    double rotation
+    int8 8 Byte Expansion
     */
     struct PFrame
     {
+        double rotation;
+        int32_t odomY;
         int16_t leftV;
         int16_t rightV;
         int16_t intakeCMD;
@@ -87,24 +91,23 @@ public:
         int16_t outtakeTCMD;
         uint8_t descoreCMD;
         uint8_t armCMD;
-        int32_t odomYPosition;
-        double rotation;
-    };
+        uint8_t fExpansion[8]; // Space for 8 Flags
+    } __attribute__((packed));
 
     std::vector<PFrame> frames;
 
     std::string selectedFile;
 
-	std::vector<std::string> indexFiles(const char *path);
-	void fileSelection();
-    
-	void checkSave(FILE *file, std::vector<XUtil::PFrame> &buffer);
-    
+    std::vector<std::string> indexFiles(const char *path);
+    void fileSelection();
+
+    void checkSave(FILE *file, std::vector<XUtil::PFrame> &buffer);
+
     bool checkFile(FILE *file);
     void parseFile(FILE *file);
 
-	void writeHeader(FILE *file, const XUtil::PSettings &settings);
-	XUtil::PSettings readHeader(FILE *file);
+    void writeHeader(FILE *file, const XUtil::PSettings &settings);
+    XUtil::PSettings readHeader(FILE *file);
 
     void handleError(ErrorCode error);
 };
