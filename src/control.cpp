@@ -226,6 +226,9 @@ void Control::recordManual(std::vector<XUtil::PFrame> &buffer)
 
 		// Handle flags
 		bool tareFlag = xUtil.partner.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_A);
+		bool loadFlag = xUtil.partner.get_digital(pros::E_CONTROLLER_DIGITAL_B);
+		bool purePDFlag = xUtil.partner.get_digital(pros::E_CONTROLLER_DIGITAL_X);
+		bool noPDFlag = xUtil.partner.get_digital(pros::E_CONTROLLER_DIGITAL_Y);
 
 		// Add inputs to buffer
 		buffer.push_back({(double_t)inertial.get_rotation(),
@@ -238,6 +241,9 @@ void Control::recordManual(std::vector<XUtil::PFrame> &buffer)
 						  (uint8_t)pistonsState.first,
 						  (uint8_t)pistonsState.second,
 						  (uint8_t)tareFlag,
+						  (uint8_t)loadFlag,
+						  (uint8_t)purePDFlag,
+						  (uint8_t)noPDFlag,
 						  {}});
 
 		pros::delay(xUtil.pcSettings.delayInterval);
@@ -383,7 +389,6 @@ void Control::telemetryAuton(XUtil::PSettings pSettings, std::vector<XUtil::PFra
 
 		pros::lcd::print(0, "Odom: %f", odomYCurrentPosition);
 		pros::lcd::print(1, "Inertial: %f", currentRotation);
-		pros::lcd::print(2, "Tare: %i", f.tareFlag);
 
 		pros::delay(pSettings.delayInterval);
 	}

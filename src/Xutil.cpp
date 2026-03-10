@@ -262,3 +262,15 @@ void XUtil::handleError(ErrorCode error)
         exit(static_cast<int>(error));
     }
 }
+
+void XUtil::printPartnerControls()
+{
+    partner.set_text(0, 0, "A: TARE");
+	pros::delay(50);
+	partner.set_text(0, 0, "B: LOAD");
+	pros::delay(50);
+	partner.set_text(0, 0, "X: PURE PD");
+	pros::delay(50);
+	partner.set_text(0, 0, "A: NO PD");
+	pros::delay(50);
+}

@@ -144,7 +144,13 @@ void Playback::overwrite()
 	pros::delay(50);
 	xUtil.master.set_text(1, 0, "OVERWRITE");
 	pros::delay(50);
+	xUtil.master.print(2, 0, "DELAY: %d", xUtil.pSettings.delayInterval);
+	pros::delay(50);
 	xUtil.master.rumble("-");
+	pros::delay(50);
+	xUtil.printPartnerControls();
+	pros::delay(50);
+	xUtil.partner.rumble("-");
 	pros::delay(1000);
 
 	control.setDataRates(false);
@@ -180,7 +186,13 @@ void Playback::extend()
 	pros::delay(50);
 	xUtil.master.set_text(1, 0, "EXTEND");
 	pros::delay(50);
+	xUtil.master.print(2, 0, "DELAY: %d", xUtil.pSettings.delayInterval);
+	pros::delay(50);
 	xUtil.master.rumble("-");
+	pros::delay(50);
+	xUtil.printPartnerControls();
+	pros::delay(50);
+	xUtil.partner.rumble("-");
 	pros::delay(1000);
 
 	control.setDataRates(false);

@@ -52,9 +52,9 @@ std::pair<int_fast16_t, int_fast16_t> Transfer::outtakeReturn(bool intakeOut, bo
         topSpeed = outtakeTSpeed;
     } else if (outtakeDown) {
         bottomSpeed = outtakeBDownSpeed;
-        topSpeed = -outtakeTSpeed;
+        topSpeed = outtakeTSpeed;
     }
-    
+
     outtakeB_.move(bottomSpeed);
     outtakeT_.move(topSpeed);
     return {bottomSpeed, topSpeed};
