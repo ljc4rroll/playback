@@ -29,7 +29,7 @@ class XUtil
 public:
     XUtil();
 
-    pros::Controller master ();
+    pros::Controller master;
 
     // Editable
     static const size_t frameMax = 10000;

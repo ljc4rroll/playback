@@ -11,6 +11,7 @@ public:
 	Control control;
 
 	void menu();
+	void roundMenu();
 
 	void replay();
 	void overwrite();

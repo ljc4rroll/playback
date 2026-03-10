@@ -89,6 +89,47 @@ void Playback::menu()
 	pros::delay(10);
 }
 
+void Playback::roundMenu()
+{
+	xUtil.master.clear();
+	pros::delay(50);
+	xUtil.master.set_text(0, 0, "NO FILE SELECTED");
+	pros::delay(50);
+	xUtil.master.set_text(1, 0, "(X)CHANGE FILE");
+	pros::delay(50);
+	xUtil.master.set_text(2, 0, "(A)CONTINUE");
+	pros::delay(50);
+
+	while (!pros::competition::is_connected())
+	{
+		if (xUtil.master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_X))
+		{
+			xUtil.fileSelection();
+			xUtil.master.clear();
+			pros::delay(50);
+			if (xUtil.selectedFile.empty())
+			{
+				xUtil.master.set_text(0, 0, "NO FILE SELECTED");
+			}
+			else
+			{
+				xUtil.master.set_text(0, 0, (xUtil.selectedFile).c_str());
+				pros::delay(50);
+				xUtil.master.set_text(2, 0, "PLUG IN");
+			}
+			pros::delay(50);
+			xUtil.master.set_text(1, 0, "(X)CHANGE FILE");
+			pros::delay(50);
+		}
+		else if (xUtil.master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_B))
+		{
+			exit(0);
+		}
+		pros::delay(10);
+	}
+	pros::delay(10);
+}
+
 void Playback::replay()
 {	
 	FILE *file = fopen(("/usd/" + xUtil.selectedFile).c_str(), "rb");
