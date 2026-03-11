@@ -239,7 +239,7 @@ void Control::recordManual(std::vector<XUtil::PFrame> &buffer)
 	}
 }
 
-void Control::auton(std::vector<XUtil::PFrame> &frames) // WIP
+void Control::auton(XUtil::PSettings pSettings, std::vector<XUtil::PFrame> &frames) // WIP
 {
 	double yPreviousError = 0.0;
 	double rPreviousError = 0.0;
@@ -271,11 +271,11 @@ void Control::auton(std::vector<XUtil::PFrame> &frames) // WIP
 		pneumatics.descore_.set_value(f.descoreCMD);
 		pneumatics.arm_.set_value(f.armCMD);
 
-		pros::delay(xUtil.pSettings.delayInterval);
+		pros::delay(pSettings.delayInterval);
 	}
 }
 
-void Control::compAuton(std::vector<XUtil::PFrame> &frames) // WIP
+void Control::compAuton(XUtil::PSettings pSettings, std::vector<XUtil::PFrame> &frames) // WIP
 {
 	double yPreviousError = 0.0;
 	double rPreviousError = 0.0;
@@ -307,7 +307,7 @@ void Control::compAuton(std::vector<XUtil::PFrame> &frames) // WIP
 		pneumatics.descore_.set_value(f.descoreCMD);
 		pneumatics.arm_.set_value(f.armCMD);
 
-		pros::delay(xUtil.pSettings.delayInterval);
+		pros::delay(pSettings.delayInterval);
 	}
 }
 
