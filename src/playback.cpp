@@ -223,7 +223,7 @@ void Playback::extend()
 	pros::delay(1000);
 
     control.setDataRates(false);
-    control.auton(xUtil.frames);
+    control.auton(xUtil.pSettings, xUtil.frames);
     control.setDataRates(true);
     control.recordManual(buffer);
     control.disabled();
