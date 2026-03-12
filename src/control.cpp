@@ -23,6 +23,7 @@ void Control::reInitialize()
 		xUtil.handleError(ErrorCode::IMUCalibrationFailed);
 	}
 	odomY.reset_position();
+	odomY.set_reversed(true);
 	pneumatics.resetPistons();
 
 	pros::lcd::initialize();
