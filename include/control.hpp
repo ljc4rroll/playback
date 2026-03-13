@@ -21,10 +21,10 @@ public:
     pros::Rotation odomY;
 
     // Autonomous Settings
-    const double yKp = (5.0) / 10000.0; // Leave the "/ 10000.0"
-    const double yKd = (15.0) / 10000.0; // Leave the "/ 10000.0"
-    const double rKp = 5.0;
-    const double rKd = 2.0;
+    const double yKp = (3.0) / 10000.0; // Leave the "/ 10000.0"
+    const double yKd = (10.0) / 10000.0; // Leave the "/ 10000.0"
+    const double rKp = 3.0;
+    const double rKd = 1.5;
 
     void reInitialize();
     void disabled();

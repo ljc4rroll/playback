@@ -151,7 +151,12 @@ void Control::manual()
 
 void Control::compManual()
 {
-	while (!pros::competition::is_disabled)
+	xUtil.master.clear();
+	pros::delay(50);
+	xUtil.master.set_text(0, 0, "OPCONTROL");
+	pros::delay(50);
+
+	while (!pros::competition::is_disabled())
 	{
 		// Handle chassis movement
 		if (xUtil.master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_B))
@@ -161,14 +166,15 @@ void Control::compManual()
 
 		// Handle transfer system
 		bool intakeOut = xUtil.master.get_digital(pros::E_CONTROLLER_DIGITAL_R2);
-		int_fast16_t intakeCMD = transfer.intakeReturn(xUtil.master.get_digital(pros::E_CONTROLLER_DIGITAL_R1), intakeOut);
-		std::pair<int_fast16_t, int_fast16_t> outtakeCMDs = transfer.outtakeReturn(intakeOut, xUtil.master.get_digital(pros::E_CONTROLLER_DIGITAL_L1), xUtil.master.get_digital(pros::E_CONTROLLER_DIGITAL_L2));
+		transfer.intake(xUtil.master.get_digital(pros::E_CONTROLLER_DIGITAL_R1), intakeOut);
+		transfer.outtake(intakeOut, xUtil.master.get_digital(pros::E_CONTROLLER_DIGITAL_L1), xUtil.master.get_digital(pros::E_CONTROLLER_DIGITAL_L2));
 
 		// Handle pneumatics
 		if (xUtil.master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_X))
 			pneumatics.toggleDescore();
 		if (xUtil.master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_A))
 			pneumatics.toggleArm();
+
 		pros::delay(xUtil.cSettings.delayInterval);
 	}
 }
@@ -287,15 +293,13 @@ void Control::compAuton(XUtil::PSettings pSettings, std::vector<XUtil::PFrame> &
 			break;
 
 		// Handle OdomY PD
-		double odomYCurrentPosition = odomY.get_position();
-		double yError = f.odomY - odomYCurrentPosition;
+		double yError = f.odomY - odomY.get_position();
 		double yDerivative = yError - yPreviousError;
 		double yPositionCorrection = (yError * yKp) + (yDerivative * yKd);
 		yPreviousError = yError;
 
 		// Handle Rotation PD
-		double currentRotation = inertial.get_rotation();
-		double rError = f.rotation - currentRotation;
+		double rError = f.rotation - inertial.get_rotation();
 		double rDerivative = rError - rPreviousError;
 		double rotationCorrection = (rError * rKp) + (rDerivative * rKd);
 		rPreviousError = rError;
@@ -336,16 +340,18 @@ void Control::telemetryAuton(XUtil::PSettings pSettings, std::vector<XUtil::PFra
 		double rotationCorrection = (rError * rKp) + (rDerivative * rKd);
 		rPreviousError = rError;
 
+		double leftInput = f.leftV;
+		double rightInput = f.rightV;
+
 		// Apply values
-		chassis.tank((f.leftV + yPositionCorrection + rotationCorrection), (f.rightV + yPositionCorrection - rotationCorrection));
+		chassis.tank((leftInput + yPositionCorrection + rotationCorrection), (rightInput + yPositionCorrection - rotationCorrection));
 		transfer.intake_.move(f.intakeCMD);
 		transfer.outtakeB_.move(f.outtakeBCMD);
 		transfer.outtakeT_.move(f.outtakeTCMD);
 		pneumatics.descore_.set_value(f.descoreCMD);
 		pneumatics.arm_.set_value(f.armCMD);
 
-		pros::lcd::print(0, "Odom: %f", yPositionCorrection);
-		pros::lcd::print(1, "Inertial: %f", rotationCorrection);
+		printf("L: %f R: %f O: %f I: %f //", leftInput, rightInput, yPositionCorrection, rotationCorrection);
 
 		pros::delay(pSettings.delayInterval);
 	}
