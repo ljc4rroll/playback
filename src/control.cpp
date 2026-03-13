@@ -320,6 +320,7 @@ void Control::telemetryAuton(XUtil::PSettings pSettings, std::vector<XUtil::PFra
 {
 	double yPreviousError = 0.0;
 	double rPreviousError = 0.0;
+	int i = 0;
 
 	for (const auto &f : frames)
 	{
@@ -352,6 +353,12 @@ void Control::telemetryAuton(XUtil::PSettings pSettings, std::vector<XUtil::PFra
 		pneumatics.arm_.set_value(f.armCMD);
 
 		printf("L: %f R: %f O: %f I: %f //", leftInput, rightInput, yPositionCorrection, rotationCorrection);
+		pros::lcd::print(0, "L: %f", leftInput);
+		pros::lcd::print(1, "R: %f", rightInput);
+		pros::lcd::print(2, "O: %f", yPositionCorrection);
+		pros::lcd::print(3, "I: %f", rotationCorrection);
+		pros::lcd::print(4, "%i", i);
+		i++;
 
 		pros::delay(pSettings.delayInterval);
 	}
