@@ -265,12 +265,14 @@ void XUtil::handleError(ErrorCode error)
 
 void XUtil::printPartnerControls()
 {
+    partner.clear();
+    pros::delay(50);
     partner.set_text(0, 0, "A: TARE");
 	pros::delay(50);
-	partner.set_text(0, 0, "B: LOAD");
-	pros::delay(50);
-	partner.set_text(0, 0, "X: PURE PD");
-	pros::delay(50);
-	partner.set_text(0, 0, "A: NO PD");
+	//partner.set_text(0, 0, "B: LOAD");
+	//pros::delay(50);
+	//partner.set_text(0, 0, "X: PURE PD");
+	//pros::delay(50);
+	partner.set_text(1, 0, "Y: NO PD");
 	pros::delay(50);
 }

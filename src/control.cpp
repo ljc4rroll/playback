@@ -225,7 +225,8 @@ void Control::recordManual(std::vector<XUtil::PFrame> &buffer)
 		std::pair<bool, bool> pistonsState = pneumatics.getPistonState();
 
 		// Handle flags
-		bool tareFlag = xUtil.partner.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_A);
+		bool tareFlag;
+		if (xUtil.partner.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_A) || xUtil.partner.get_digital_new_release(pros::E_CONTROLLER_DIGITAL_X) || xUtil.partner.get_digital_new_release(pros::E_CONTROLLER_DIGITAL_Y)) tareFlag = 1; else tareFlag = 0;
 		bool loadFlag = xUtil.partner.get_digital(pros::E_CONTROLLER_DIGITAL_B);
 		bool purePDFlag = xUtil.partner.get_digital(pros::E_CONTROLLER_DIGITAL_X);
 		bool noPDFlag = xUtil.partner.get_digital(pros::E_CONTROLLER_DIGITAL_Y);
@@ -372,12 +373,18 @@ void Control::telemetryAuton(XUtil::PSettings pSettings, std::vector<XUtil::PFra
 		double yDerivative = yError - yPreviousError;
 		double yPositionCorrection = (yError * yKp) + (yDerivative * yKd);
 		yPreviousError = yError;
-
+		
 		// Handle Rotation PD
 		double rError = f.rotation - (currentRotation - rOffset);
 		double rDerivative = rError - rPreviousError;
 		double rotationCorrection = (rError * rKp) + (rDerivative * rKd);
 		rPreviousError = rError;
+		
+		if (f.noPDFlag)
+		{
+			yPositionCorrection = 0.0;
+			rotationCorrection = 0.0;
+		}
 
 		// Apply values
 		chassis.tank((f.leftV + yPositionCorrection + rotationCorrection), (f.rightV + yPositionCorrection - rotationCorrection));

@@ -22,7 +22,7 @@ public:
 private:
     const int intakeInSpeed = 127;
     const int intakeOutSpeed = -90;
-    const int outtakeBUpSpeed = -127;
-    const int outtakeBDownSpeed = 67;
-    const int outtakeTSpeed = 127;
+    const int outtakeBUpSpeed = -115;
+    const int outtakeBDownSpeed = 55;
+    const int outtakeTSpeed = 100;
 };
