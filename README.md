@@ -60,12 +60,8 @@ if (!pros::competition::is_connected()) {
 
 #### Is this legal?
 
-Yes. As of version 2.2 of the Push Back handbook, autonomous is defined as such:
+Yes. As of version 3.0 of the Push Back handbook, autonomous is defined as such:
 ```
 Autonomous Period - A time period during which Robots operate and react only to sensor inputs
 and pre-programmed commands.
 ```
-
-## Roadmap
-
-- Odometry integration
