@@ -286,6 +286,12 @@ void Control::auton(XUtil::PSettings pSettings, std::vector<XUtil::PFrame> &fram
 		double rotationCorrection = (rError * rKp) + (rDerivative * rKd);
 		rPreviousError = rError;
 
+		if (f.noPDFlag)
+		{
+			yPositionCorrection = 0.0;
+			rotationCorrection = 0.0;
+		}
+
 		// Apply values
 		chassis.tank((f.leftV + yPositionCorrection + rotationCorrection), (f.rightV + yPositionCorrection - rotationCorrection));
 		transfer.intake_.move(f.intakeCMD);
@@ -332,6 +338,12 @@ void Control::compAuton(XUtil::PSettings pSettings, std::vector<XUtil::PFrame> &
 		double rDerivative = rError - rPreviousError;
 		double rotationCorrection = (rError * rKp) + (rDerivative * rKd);
 		rPreviousError = rError;
+
+		if (f.noPDFlag)
+		{
+			yPositionCorrection = 0.0;
+			rotationCorrection = 0.0;
+		}
 
 		// Apply values
 		chassis.tank((f.leftV + yPositionCorrection + rotationCorrection), (f.rightV + yPositionCorrection - rotationCorrection));
